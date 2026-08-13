@@ -13,6 +13,7 @@
 
 namespace Negarin\Services;
 
+use Negarin\Services\Sms\LogGateway;
 use Negarin\Services\Sms\SmsGatewayInterface;
 use Negarin\Services\Sms\KavenegarGateway;
 use WP_REST_Request;
@@ -42,7 +43,8 @@ class OtpAuth {
 		/**
 		 * @param SmsGatewayInterface $gateway
 		 */
-		return apply_filters( 'negarin_sms_gateway', new KavenegarGateway() );
+//		return apply_filters( 'negarin_sms_gateway', new KavenegarGateway() );
+		return apply_filters( 'negarin_sms_gateway', new LogGateway() );
 	}
 
 	public function register_routes(): void {
