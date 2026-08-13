@@ -1,0 +1,22 @@
+/*
+Theme Name: Negarin
+Theme URI: https://noav.ir
+Author: Noavar
+Author URI: https://noavarpub.com
+Description: Production WordPress + WooCommerce theme for Negarin — an online abaya / formal-wear fashion store. Fully customizable homepage builder, RTL/LTR ready, Polylang ready, phone+OTP authentication.
+Version: 1.0.0
+Requires at least: 6.4
+Tested up to: 6.6
+Requires PHP: 8.3
+WC requires at least: 8.0
+WC tested up to: 9.0
+Text Domain: negarin
+Domain Path: /languages
+License: GNU General Public License v2 or later
+License URI: LICENSE
+Tags: e-commerce, custom-colors, custom-logo, custom-menu, editor-style, featured-images, rtl-language-support, translation-ready
+
+Negarin is built with Tailwind CSS (compiled via Vite) — do not add styles directly
+to this file. All styling lives in assets/css/app.css (source) and is compiled to
+assets/build/. This file exists only to satisfy the WordPress theme header requirement.
+*/

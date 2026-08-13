@@ -1,0 +1,165 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------
+ * Base
+ * ------------------------------------------------------------------- */
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  body {
+    @apply font-sans text-negarin-ink antialiased;
+  }
+  [x-cloak] {
+    display: none !important;
+  }
+  .skip-link {
+    @apply absolute -top-96 right-4 bg-white px-4 py-2 z-50 focus:top-4;
+  }
+}
+
+/* ---------------------------------------------------------------------
+ * Reusable components — buttons, cards, badges. Never repeat these
+ * utility combinations inline in templates; extend them here instead.
+ * ------------------------------------------------------------------- */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-6 py-3 text-sm tracking-wide transition-colors;
+  }
+  .btn--solid {
+    @apply btn bg-negarin-ink text-white hover:bg-black;
+  }
+  .btn--outline {
+    @apply btn border border-negarin-ink text-negarin-ink hover:bg-negarin-ink hover:text-white;
+  }
+  .btn--outline-white {
+    @apply btn border border-white text-white hover:bg-white hover:text-negarin-ink;
+  }
+
+  .product-card {
+    @apply block text-right;
+  }
+  .product-card__title {
+    @apply mt-3 text-sm;
+  }
+  .product-card__price {
+    @apply text-sm opacity-70;
+  }
+}
+
+/* ---------------------------------------------------------------------
+ * RTL / LTR — Tailwind utilities are already logical-property based for
+ * spacing (gap, grid) but a few manual overrides are needed for icons.
+ * ------------------------------------------------------------------- */
+[dir='ltr'] .negarin-otp-form {
+  text-align: left;
+}
+
+/* Native WooCommerce cart controls we keep functional but drive via our
+   own UI (quantity stepper triggers this button programmatically). */
+.woocommerce-cart-form [name='update_cart'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------------
+ * WooCommerce checkout — style the plugin's own markup/classes to match
+ * the design instead of rewriting its field-rendering logic.
+ * ------------------------------------------------------------------- */
+.woocommerce-billing-fields__field-wrapper,
+.form-row {
+  margin-bottom: 1.25rem;
+}
+.form-row label {
+  @apply block text-sm mb-2;
+}
+.form-row input.input-text,
+.form-row select,
+.form-row textarea {
+  @apply w-full border border-black/15 rounded-sm px-4 py-3 bg-white;
+}
+.woocommerce-checkout .woocommerce-billing-fields__field-wrapper {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-x-6;
+}
+.form-row-wide {
+  grid-column: 1 / -1;
+}
+.woocommerce-checkout .select2-container .select2-selection--single {
+  height: 3rem !important;
+  border-color: rgb(0 0 0 / 0.15) !important;
+  border-radius: 0.125rem !important;
+}
+
+/* Payment method cards (image7): turn WC's plain radio list into bordered
+   selectable rows. */
+.woocommerce-checkout ul.wc_payment_methods {
+  @apply divide-y divide-black/10 border border-black/10 rounded-sm;
+}
+.woocommerce-checkout ul.wc_payment_methods li.wc_payment_method {
+  @apply px-5 py-4;
+}
+.woocommerce-checkout ul.wc_payment_methods label {
+  @apply flex items-center justify-between cursor-pointer text-sm;
+}
+.woocommerce-checkout #place_order {
+  @apply btn btn--solid w-full mt-6;
+}
+.woocommerce-checkout #payment .payment_box {
+  @apply text-xs opacity-70 mt-2;
+}
+
+/* ---------------------------------------------------------------------
+ * Thank-you page (image11)
+ * ------------------------------------------------------------------- */
+.negarin-order-received .woocommerce-order {
+  @apply max-w-2xl mx-auto text-center py-16 px-6;
+}
+
+/* ---------------------------------------------------------------------
+ * Shop / category archive — style WooCommerce's own result-count,
+ * ordering dropdown, and pagination instead of overriding their markup.
+ * ------------------------------------------------------------------- */
+.woocommerce-result-count,
+.woocommerce-ordering {
+  @apply text-sm opacity-70 mb-6;
+}
+.woocommerce-ordering select {
+  @apply border border-black/15 rounded-sm px-3 py-2 text-sm bg-white;
+}
+.woocommerce-pagination,
+.negarin-pagination {
+  @apply flex justify-center gap-2 mt-12 text-sm;
+}
+.woocommerce-pagination .page-numbers,
+.negarin-pagination .page-numbers {
+  @apply inline-flex items-center justify-center w-9 h-9 border border-black/10 rounded-sm;
+}
+.woocommerce-pagination .page-numbers.current,
+.negarin-pagination .page-numbers.current {
+  @apply bg-negarin-ink text-white border-negarin-ink;
+}
+
+/* ---------------------------------------------------------------------
+ * Blog post content
+ * ------------------------------------------------------------------- */
+.prose h2,
+.prose h3 {
+  @apply font-serif;
+  scroll-margin-top: 6rem; /* keeps TOC-linked headings clear of the sticky header */
+}
+
+/* Hides the scrollbar on horizontally-swipeable carousels (mobile product
+   gallery, product carousels) without disabling scroll/snap behavior. */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
