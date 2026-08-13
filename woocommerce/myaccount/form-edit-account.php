@@ -12,8 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 use Negarin\Services\AddressBook;
 
 $user    = wp_get_current_user();
-
-$address = wc_format_address(
+$address = WC()->countries->get_formatted_address(
 	array(
 		'address_1' => get_user_meta( $user->ID, 'billing_address_1', true ),
 		'address_2' => get_user_meta( $user->ID, 'billing_address_2', true ),
