@@ -30,10 +30,10 @@ add_filter(
 
 // Remove WooCommerce's default username/password login form on My Account
 // and replace it with the phone/OTP template part.
-remove_action( 'woocommerce_login_form', 'woocommerce_login_form' );
-add_action( 'woocommerce_login_form', function () {
-	get_template_part( 'template-parts/components/otp-login-form' );
-} );
+//remove_action( 'woocommerce_login_form', 'woocommerce_login_form' );
+//add_action( 'woocommerce_login_form', function () {
+//	get_template_part( 'template-parts/components/otp-login-form' );
+//} );
 
 // Disable user registration via wp-login.php?action=register for the storefront.
 add_filter(
