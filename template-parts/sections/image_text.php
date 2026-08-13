@@ -6,7 +6,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+    exit;
 }
 
 $side    = get_sub_field( 'image_side' ) ?: 'right';
@@ -20,27 +20,24 @@ $bg      = get_sub_field( 'background_color' ) ?: 'white';
 $is_image_left = 'left' === $side;
 ?>
 <section class="negarin-image-text py-12 md:py-20 <?php echo esc_attr( negarin_section_bg_class( $bg ) ); ?>">
-	<div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+    <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
 
-		<div class="<?php echo esc_attr( $is_image_left ? 'md:order-1' : 'md:order-2' ); ?>">
-			<?php negarin_image( $image, 'negarin-section-half', 'w-full h-auto object-cover rounded-sm' ); ?>
-		</div>
+        <div class="<?php echo esc_attr( $is_image_left ? 'md:order-1' : 'md:order-2' ); ?>">
+            <?php negarin_image( $image, 'negarin-section-half', 'w-full h-auto object-cover rounded-sm' ); ?>
+        </div>
 
-		<div class="<?php echo esc_attr( $is_image_left ? 'md:order-2 text-right' : 'md:order-1 text-right' ); ?> px-2">
-			<?php if ( $eyebrow ) : ?>
-				<span class="block text-sm text-negarin-gold mb-2"><?php echo esc_html( $eyebrow ); ?></span>
-			<?php endif; ?>
-			<?php if ( $title ) : ?>
-				<h3 class="font-serif text-2xl md:text-3xl mb-4"><?php echo esc_html( $title ); ?></h3>
-			<?php endif; ?>
-			<?php if ( $text ) : ?>
-				<p class="opacity-80 leading-8 mb-6"><?php echo esc_html( $text ); ?></p>
-			<?php endif; ?>
-			<?php if(is_array($button)){
-                negarin_link_button( $button, 'btn btn--outline' );
-            }
-            ?>
-		</div>
+        <div class="<?php echo esc_attr( $is_image_left ? 'md:order-2 text-right' : 'md:order-1 text-right' ); ?> px-2">
+            <?php if ( $eyebrow ) : ?>
+                <span class="block text-sm text-negarin-gold mb-2"><?php echo esc_html( $eyebrow ); ?></span>
+            <?php endif; ?>
+            <?php if ( $title ) : ?>
+                <h3 class="font-serif text-2xl md:text-3xl mb-4"><?php echo esc_html( $title ); ?></h3>
+            <?php endif; ?>
+            <?php if ( $text ) : ?>
+                <p class="opacity-80 leading-8 mb-6"><?php echo esc_html( $text ); ?></p>
+            <?php endif; ?>
+            <?php negarin_link_button( $button, 'btn btn--outline' ); ?>
+        </div>
 
-	</div>
+    </div>
 </section>

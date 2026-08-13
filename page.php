@@ -8,23 +8,32 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
+$is_bare_login_screen = function_exists( 'is_account_page' )
+        && is_account_page()
+        && ! is_user_logged_in();
 get_header();
 ?>
 <main id="main-content" class="max-w-3xl mx-auto px-4 py-16">
 	<?php
-	while ( have_posts() ) :
-		the_post();
-		?>
-		<article <?php post_class(); ?>>
-			<h1 class="font-serif text-3xl mb-6"><?php the_title(); ?></h1>
-			<div class="prose max-w-none leading-8">
-				<?php the_content(); ?>
-			</div>
-		</article>
-		<?php
-	endwhile;
-	?>
+    while ( have_posts() ) :
+        the_post();
+        ?>
+
+        <article <?php post_class(); ?>>
+
+            <?php if ( ! $is_bare_login_screen ) : ?>
+                <h1 class="font-serif text-3xl mb-6">
+                    <?php the_title(); ?>
+                </h1>
+            <?php endif; ?>
+
+            <div class="...">
+                <?php the_content(); ?>
+            </div>
+
+        </article>
+
+    <?php endwhile; ?>
 </main>
 <?php
 get_footer();

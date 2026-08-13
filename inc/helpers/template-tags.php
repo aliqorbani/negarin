@@ -7,7 +7,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+    exit;
 }
 
 /**
@@ -19,37 +19,43 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param bool     $lazy     Whether to lazy-load (first hero image should pass false).
  */
 function negarin_image( ?int $image_id, string $size = 'large', string $classes = '', bool $lazy = true ): void {
-	if ( ! $image_id ) {
-		return;
-	}
+    if ( ! $image_id ) {
+        return;
+    }
 
-	$attrs = array(
-		'class'   => $classes,
-		'loading' => $lazy ? 'lazy' : 'eager',
-		'decoding' => 'async',
-	);
+    $attrs = array(
+        'class'   => $classes,
+        'loading' => $lazy ? 'lazy' : 'eager',
+        'decoding' => 'async',
+    );
 
-	echo wp_get_attachment_image( $image_id, $size, false, $attrs ); // phpcs:ignore WordPress.Security.EscapeOutput
+    echo wp_get_attachment_image( $image_id, $size, false, $attrs ); // phpcs:ignore WordPress.Security.EscapeOutput
 }
 
 /**
  * Render an ACF "link" field array as an <a> tag, or nothing if empty.
  *
- * @param array|string|null $link  ACF link field value: ['url'=>, 'title'=>, 'target'=>].
- * @param string     $classes CSS classes for the anchor.
+ * ACF's Link field returns an array when a value is set, but can return an
+ * empty string ('') rather than null when the field is left blank — so the
+ * param is intentionally untyped (mixed) and validated with is_array()
+ * instead of relying on a strict ?array type hint, which would fatal on
+ * that empty-string case.
+ *
+ * @param mixed  $link  ACF link field value: ['url'=>, 'title'=>, 'target'=>], or '' when empty.
+ * @param string $classes CSS classes for the anchor.
  */
-function negarin_link_button(array|string|null $link, string $classes = 'btn' ): void {
-	if ( !is_array($link) || empty( $link['url'] ) ) {
-		return;
-	}
+function negarin_link_button( $link, string $classes = 'btn' ): void {
+    if ( ! is_array( $link ) || empty( $link['url'] ) ) {
+        return;
+    }
 
-	printf(
-		'<a href="%1$s" class="%2$s"%3$s>%4$s</a>',
-		esc_url( $link['url'] ),
-		esc_attr( $classes ),
-		! empty( $link['target'] ) ? ' target="_blank" rel="noopener"' : '',
-		esc_html( $link['title'] ?? __( 'مشاهده', 'negarin' ) )
-	);
+    printf(
+        '<a href="%1$s" class="%2$s"%3$s>%4$s</a>',
+        esc_url( $link['url'] ),
+        esc_attr( $classes ),
+        ! empty( $link['target'] ) ? ' target="_blank" rel="noopener"' : '',
+        esc_html( $link['title'] ?? __( 'مشاهده', 'negarin' ) )
+    );
 }
 
 /**
@@ -60,11 +66,11 @@ function negarin_link_button(array|string|null $link, string $classes = 'btn' ):
  * @return mixed
  */
 function negarin_option( string $key, $fallback = '' ) {
-	if ( ! function_exists( 'get_field' ) ) {
-		return $fallback;
-	}
-	$value = get_field( $key, 'option' );
-	return ( null === $value || '' === $value ) ? $fallback : $value;
+    if ( ! function_exists( 'get_field' ) ) {
+        return $fallback;
+    }
+    $value = get_field( $key, 'option' );
+    return ( null === $value || '' === $value ) ? $fallback : $value;
 }
 
 /**
@@ -73,30 +79,30 @@ function negarin_option( string $key, $fallback = '' ) {
  * two always stay in sync.
  */
 function negarin_get_breadcrumbs(): array {
-	$crumbs = array(
-		array( 'label' => __( 'خانه', 'negarin' ), 'url' => home_url( '/' ) ),
-	);
+    $crumbs = array(
+        array( 'label' => __( 'خانه', 'negarin' ), 'url' => home_url( '/' ) ),
+    );
 
-	if ( is_singular( 'post' ) ) {
-		$blog_page_id = get_option( 'page_for_posts' );
-		if ( $blog_page_id ) {
-			$crumbs[] = array( 'label' => get_the_title( $blog_page_id ), 'url' => get_permalink( $blog_page_id ) );
-		}
+    if ( is_singular( 'post' ) ) {
+        $blog_page_id = get_option( 'page_for_posts' );
+        if ( $blog_page_id ) {
+            $crumbs[] = array( 'label' => get_the_title( $blog_page_id ), 'url' => get_permalink( $blog_page_id ) );
+        }
 
-		$categories = get_the_category();
-		if ( ! empty( $categories ) ) {
-			$crumbs[] = array( 'label' => $categories[0]->name, 'url' => get_category_link( $categories[0] ) );
-		}
+        $categories = get_the_category();
+        if ( ! empty( $categories ) ) {
+            $crumbs[] = array( 'label' => $categories[0]->name, 'url' => get_category_link( $categories[0] ) );
+        }
 
-		$crumbs[] = array( 'label' => get_the_title(), 'url' => get_permalink() );
-	} elseif ( is_category() || is_tag() || is_date() ) {
-		$crumbs[] = array( 'label' => single_cat_title( '', false ) ?: get_the_archive_title(), 'url' => '' );
-	} elseif ( is_singular( 'product' ) ) {
-		$crumbs[] = array( 'label' => __( 'محصولات', 'negarin' ), 'url' => get_post_type_archive_link( 'product' ) );
-		$crumbs[] = array( 'label' => get_the_title(), 'url' => get_permalink() );
-	}
+        $crumbs[] = array( 'label' => get_the_title(), 'url' => get_permalink() );
+    } elseif ( is_category() || is_tag() || is_date() ) {
+        $crumbs[] = array( 'label' => single_cat_title( '', false ) ?: get_the_archive_title(), 'url' => '' );
+    } elseif ( is_singular( 'product' ) ) {
+        $crumbs[] = array( 'label' => __( 'محصولات', 'negarin' ), 'url' => get_post_type_archive_link( 'product' ) );
+        $crumbs[] = array( 'label' => get_the_title(), 'url' => get_permalink() );
+    }
 
-	return $crumbs;
+    return $crumbs;
 }
 
 /**
@@ -105,8 +111,8 @@ function negarin_get_breadcrumbs(): array {
  * but close enough for a UI label like "۴ دقیقه مطالعه".
  */
 function negarin_reading_time( string $content ): int {
-	$word_count = count( preg_split( '/\s+/u', trim( wp_strip_all_tags( $content ) ) ) );
-	return max( 1, (int) ceil( $word_count / 150 ) );
+    $word_count = count( preg_split( '/\s+/u', trim( wp_strip_all_tags( $content ) ) ) );
+    return max( 1, (int) ceil( $word_count / 150 ) );
 }
 
 /**
@@ -118,30 +124,30 @@ function negarin_reading_time( string $content ): int {
  * @return array{content: string, items: array}
  */
 function negarin_extract_toc( string $content ): array {
-	$items = array();
+    $items = array();
 
-	$content = preg_replace_callback(
-		'/<h([23])(.*?)>(.*?)<\/h\1>/i',
-		function ( $match ) use ( &$items ) {
-			$level = (int) $match[1];
-			$text  = wp_strip_all_tags( $match[3] );
-			$slug  = sanitize_title( $text ) . '-' . ( count( $items ) + 1 );
+    $content = preg_replace_callback(
+        '/<h([23])(.*?)>(.*?)<\/h\1>/i',
+        function ( $match ) use ( &$items ) {
+            $level = (int) $match[1];
+            $text  = wp_strip_all_tags( $match[3] );
+            $slug  = sanitize_title( $text ) . '-' . ( count( $items ) + 1 );
 
-			$items[] = array(
-				'id'    => $slug,
-				'text'  => $text,
-				'level' => $level,
-			);
+            $items[] = array(
+                'id'    => $slug,
+                'text'  => $text,
+                'level' => $level,
+            );
 
-			return sprintf( '<h%1$d id="%2$s"%3$s>%4$s</h%1$d>', $level, esc_attr( $slug ), $match[2], $match[3] );
-		},
-		$content
-	);
+            return sprintf( '<h%1$d id="%2$s"%3$s>%4$s</h%1$d>', $level, esc_attr( $slug ), $match[2], $match[3] );
+        },
+        $content
+    );
 
-	return array(
-		'content' => $content,
-		'items'   => $items,
-	);
+    return array(
+        'content' => $content,
+        'items'   => $items,
+    );
 }
 
 /**
@@ -149,11 +155,11 @@ function negarin_extract_toc( string $content ): array {
  * design system stays consistent (design tokens live in tailwind.config.js).
  */
 function negarin_section_bg_class( string $key ): string {
-	$map = array(
-		'white' => 'bg-white text-negarin-ink',
-		'cream' => 'bg-negarin-cream text-negarin-ink',
-		'black' => 'bg-negarin-ink text-white',
-	);
+    $map = array(
+        'white' => 'bg-white text-negarin-ink',
+        'cream' => 'bg-negarin-cream text-negarin-ink',
+        'black' => 'bg-negarin-ink text-white',
+    );
 
-	return $map[ $key ] ?? $map['white'];
+    return $map[ $key ] ?? $map['white'];
 }

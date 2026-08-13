@@ -45,5 +45,6 @@ if ( ! $is_bare_login_screen ) :
 	get_template_part( 'template-parts/header/site-header' );
 endif;
 ?>
-
-<?php do_action( 'negarin_content_top' ); ?>
+<?php if ( ! $is_bare_login_screen ) : ?>
+    <?php do_action( 'negarin_content_top' ); ?>
+<?php endif; ?>
