@@ -35,11 +35,11 @@ function negarin_image( ?int $image_id, string $size = 'large', string $classes 
 /**
  * Render an ACF "link" field array as an <a> tag, or nothing if empty.
  *
- * @param array|null $link  ACF link field value: ['url'=>, 'title'=>, 'target'=>].
+ * @param array|string|null $link  ACF link field value: ['url'=>, 'title'=>, 'target'=>].
  * @param string     $classes CSS classes for the anchor.
  */
-function negarin_link_button( ?array $link, string $classes = 'btn' ): void {
-	if ( empty( $link['url'] ) ) {
+function negarin_link_button(array|string|null $link, string $classes = 'btn' ): void {
+	if ( !is_array($link) || empty( $link['url'] ) ) {
 		return;
 	}
 
