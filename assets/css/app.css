@@ -2,6 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
+
+@font-face {
+  font-family: 'Modam VF';
+  src: url('../fonts/ModamVF.woff') format('woff-variations'),
+    /* will be the standard and works in Safari now */
+       url('../fonts/ModamVF.woff2') format('woff2'),
+       url('../fonts/ModamVF.woff') format('woff');
+  /* for the other supporting browsers */
+  font-display: fallback;
+}
+
+
+@font-face {
+  font-family: Modam;
+  src: url('../fonts/ModamWeb-Regular.woff2') format('woff2'),
+       url('../fonts/ModamWeb-Regular.woff') format('woff');
+}
+@font-face {
+  font-family: Modam;
+  src: url('../fonts/ModamWeb-Bold.woff2') format('woff2'),
+       url('../fonts/ModamWeb-Bold.woff') format('woff');
+  font-weight: 700;
+}
+
+
+body {
+  font-family: Modam, tahoma;
+}
+@supports (font-variation-settings: normal) {
+  body {
+    font-family: 'Modam VF', tahoma;
+  }
+}
+
 /* ---------------------------------------------------------------------
  * Base
  * ------------------------------------------------------------------- */
@@ -29,7 +63,7 @@
     @apply inline-flex items-center justify-center px-6 py-3 text-sm tracking-wide transition-colors;
   }
   .btn--solid {
-    @apply btn bg-negarin-ink text-white hover:bg-black;
+    @apply btn bg-negarin-gray text-white hover:bg-black;
   }
   .btn--outline {
     @apply btn border border-negarin-ink text-negarin-ink hover:bg-negarin-ink hover:text-white;
@@ -162,4 +196,14 @@
 }
 .scrollbar-none::-webkit-scrollbar {
   display: none;
+}
+
+.section-image-text{
+  @apply text-center;
+  font-size: 2.25rem;
+  white-space: pre;
+  max-width : 32rem;
+  line-height: 1.5;
+
+
 }
