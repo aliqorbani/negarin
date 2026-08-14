@@ -13,7 +13,7 @@ $is_bare_login_screen = function_exists( 'is_account_page' )
         && ! is_user_logged_in();
 get_header();
 ?>
-<main id="main-content" class="max-w-3xl mx-auto px-4 py-16">
+<main id="main-content" class="px-4 py-16">
 	<?php
     while ( have_posts() ) :
         the_post();
@@ -27,7 +27,7 @@ get_header();
                 </h1>
             <?php endif; ?>
 
-            <div class="...">
+            <div class="prose max-w-none leading-8">
                 <?php the_content(); ?>
             </div>
 
