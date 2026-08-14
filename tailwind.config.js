@@ -21,8 +21,8 @@ export default {
       },
       fontFamily: {
         // Swap these for the licensed brand fonts once supplied.
-        serif: ['"Noto Serif"', 'serif'],
-        sans: ['"Modam"','"Vazirmatn"', 'tahoma', 'system-ui', 'sans-serif'],
+        serif: ['"Modam"', '"Noto Serif"', 'serif'],
+        sans: ['"Modam"', '"Vazirmatn"', 'tahoma', 'system-ui', 'sans-serif'],
       },
       screens: {
         xs: '420px',
