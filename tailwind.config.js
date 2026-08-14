@@ -16,7 +16,7 @@ export default {
           red: '#AA2B2B',
           cream: '#F4EFE9', // warm off-white background used behind text blocks
           gold: '#B08D57',  // accent used for eyebrow labels / hover states
-          line: '#E5E0D8',  // hairline borders
+          line: '#E4E7EC',  // hairline borders
         },
       },
       fontFamily: {
