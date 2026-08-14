@@ -21,26 +21,12 @@ $image        = negarin_option( 'login_image' );
 $welcome_text = negarin_option( 'login_welcome_text', __( "به خانه نگارین\nخوش آمدید", 'negarin' ) );
 ?>
 <div class="negarin-login grid grid-cols-1 md:grid-cols-2 md:min-h-[80vh]">
-
-	<div class="relative hidden md:block">
-		<?php if ( $image ) : ?>
-			<?php negarin_image( $image, 'negarin-hero', 'w-full h-full object-cover', false ); ?>
-		<?php endif; ?>
-
-		<?php if ( $welcome_text ) : ?>
-			<div class="absolute bottom-10 right-10 bg-white/90 backdrop-blur px-8 py-6 max-w-xs text-center border border-black/5">
-				<p class="font-serif leading-8"><?php echo nl2br( esc_html( $welcome_text ) ); // phpcs:ignore ?></p>
-			</div>
-		<?php endif; ?>
-	</div>
-
 	<div class="flex flex-col justify-center px-6 md:px-16 py-10 md:py-16" x-data="negarinOtp()">
-
 		<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="block mb-8 md:mb-10 text-center md:text-right">
 			<?php if ( has_custom_logo() ) : ?>
 				<?php the_custom_logo(); ?>
 			<?php else : ?>
-				<span class="font-serif tracking-[0.35em] text-2xl"><?php bloginfo( 'name' ); ?></span>
+				<span class="font-serif tracking-[0.35em] text-3xl"><?php bloginfo( 'name' ); ?></span>
 			<?php endif; ?>
 		</a>
 
@@ -73,20 +59,21 @@ $welcome_text = negarin_option( 'login_welcome_text', __( "به خانه نگا�
 					<?php esc_html_e( 'را وارد نمایید', 'negarin' ); ?>
 				</label>
 				<input id="negarin-code" type="tel" inputmode="numeric" maxlength="5" placeholder="<?php esc_attr_e( 'اینجا وارد نمایید', 'negarin' ); ?>"
-					class="w-full border border-black/15 rounded-sm px-4 py-3 mb-3 text-center tracking-[0.5em]" dir="ltr"
+					class="w-full border border-negarin-line rounded-0 px-4.5 py-4.5 mb-3 text-center tracking-[0.5em]" dir="ltr"
 					x-model="code" @keyup.enter="verifyCode()">
 
 				<div class="flex items-center justify-between text-sm mb-6">
-					<button type="button" class="text-negarin-gold underline" @click="back()">
-						<?php esc_html_e( 'ویرایش شماره', 'negarin' ); ?>
-					</button>
-					<button type="button" class="opacity-70 disabled:opacity-30" @click="resendCode()" :disabled="cooldown > 0">
+
+					<button type="button" class="opacity-90 disabled:opacity-80 text-negarin-ink" @click="resendCode()" :disabled="cooldown > 0">
 						<span x-show="cooldown > 0">
-							<?php esc_html_e( 'تا ارسال مجدد', 'negarin' ); ?>
-							<span x-text="cooldown"></span>
+							<?php esc_html_e( 'تا ارسال مجدد:', 'negarin' ); ?>
+							<span x-text="cooldown" class="text-negarin-red"></span>
 						</span>
 						<span x-show="cooldown === 0"><?php esc_html_e( 'ارسال مجدد کد', 'negarin' ); ?></span>
 					</button>
+                    <button type="button" class="text-negarin-red" @click="back()">
+                        <?php esc_html_e( 'ویرایش شماره', 'negarin' ); ?>
+                    </button>
 				</div>
 
 				<?php if ( $image ) : ?>
@@ -95,7 +82,7 @@ $welcome_text = negarin_option( 'login_welcome_text', __( "به خانه نگا�
 					</div>
 				<?php endif; ?>
 
-				<p class="text-red-600 text-sm mb-4" x-show="error" x-text="error"></p>
+				<p class="text-negarin-red text-sm mb-2" x-show="error" x-text="error"></p>
 
 				<button class="btn btn--solid w-full" @click="verifyCode()" :disabled="loading">
 					<?php esc_html_e( 'ورود', 'negarin' ); ?>
@@ -104,4 +91,10 @@ $welcome_text = negarin_option( 'login_welcome_text', __( "به خانه نگا�
 		</template>
 
 	</div>
+
+    <div class="relative hidden md:block">
+        <?php if ( $image ) : ?>
+            <?php negarin_image( $image, 'negarin-hero', 'w-full h-full object-cover', false ); ?>
+        <?php endif; ?>
+    </div>
 </div>
