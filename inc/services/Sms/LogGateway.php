@@ -21,7 +21,14 @@ class LogGateway implements SmsGatewayInterface {
             $phone,
             $code
         );
+        if ( function_exists( 'wc_get_logger' ) ) {
+            wc_get_logger()->info(
+                $log,
+                array( 'source' => 'negarin-otp' )
+            );
+        }
         file_put_contents(__DIR__.'/otps.log',$log.PHP_EOL,FILE_APPEND);
+
         error_log(
             $log
         );
