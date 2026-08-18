@@ -46,6 +46,9 @@ body {
   body {
     @apply font-sans text-negarin-ink antialiased;
   }
+  a{
+    @apply text-negarin-ink hover:text-negarin-red transition-colors;
+  }
   [x-cloak] {
     display: none !important;
   }
@@ -199,11 +202,5 @@ body {
 }
 
 .section-image-text{
-  @apply text-center;
-  font-size: 2.25rem;
-  white-space: pre;
-  max-width : 32rem;
-  line-height: 1.5;
-
-
+  @apply text-center text-sm/6 md:text-4xl md:leading-[60px] w-full md:max-w-lg whitespace-normal md:whitespace-pre;
 }
