@@ -24,7 +24,7 @@ class OffcanvasMenuWalker extends \Walker_Nav_Menu {
 		$output .= '<button type="button" class="text-xl leading-none" @click="panel = 0" aria-label="' . esc_attr__( 'بازگشت', 'negarin' ) . '">‹</button>';
 		$output .= '<span class="flex-1 text-center font-serif tracking-[0.3em]">' . esc_html( get_bloginfo( 'name' ) ) . '</span>';
 		$output .= '</div>';
-		$output .= '<ul class="divide-y divide-black/10">';
+		$output .= '<ul>';
 	}
 
 	public function end_lvl( &$output, $depth = 0, $args = null ) {
