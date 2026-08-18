@@ -166,10 +166,18 @@ class ThemeOptions {
 								'label'   => __( 'Platform', 'negarin' ),
 								'type'    => 'select',
 								'choices' => array(
-									'instagram' => 'Instagram',
-									'telegram'  => 'Telegram',
-									'whatsapp'  => 'WhatsApp',
-									'twitter'   => 'X / Twitter',
+                                    'instagram'=>'اینستاگرام',
+                                    'facebook'=>'فیثبوک',
+                                    'twitter'=>'ایکس (توییتر)',
+                                    'youtube'=>'یوتیوب',
+                                    'telegram'=>'تلگرام',
+                                    'whatsapp'=>'واتس‌آپ',
+                                    'aparat'=>'آپارات',
+                                    'bale' => 'بله',
+                                    'eitaa' => 'ایتا',
+                                    'splus' => 'سروش',
+                                    'rubika' => 'روبیکا',
+
 								),
 							),
 							array(
