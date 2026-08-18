@@ -13,8 +13,8 @@ $columns   = get_sub_field( 'columns' ) ?: '2';
 $col_class = '3' === $columns ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-2';
 $size      = '3' === $columns ? 'negarin-grid-3' : 'negarin-grid-2';
 ?>
-<section class="negarin-image-grid py-4">
-    <div class="grid gap-2 md:gap-3 max-w-7xl mx-auto <?php echo esc_attr( $col_class ); ?>">
+<section class="negarin-page-section negarin-image-grid">
+    <div class="container max-w-7xl mx-auto px-4 grid gap-10 items-center <?php echo esc_attr( $col_class ); ?>">
         <?php if ( have_rows( 'items' ) ) : ?>
         <?php while ( have_rows( 'items' ) ) : the_row(); ?>
         <?php
@@ -31,9 +31,9 @@ $size      = '3' === $columns ? 'negarin-grid-3' : 'negarin-grid-2';
         class="relative block group overflow-hidden"
         >
         <?php negarin_image( $image, $size, 'w-full h-full object-cover transition-transform duration-500 group-hover:scale-105' ); ?>
-        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-500"></div>
+        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors duration-500"></div>
         <?php if ( $caption ) : ?>
-            <span class="absolute inset-0 flex items-center justify-center px-4 text-center text-white text-lg md:text-xl font-serif opacity-0 group-hover:opacity-100 transition-opacity duration-500"><?php echo esc_html( $caption ); ?></span>
+            <span class="md:absolute inset-0 flex items-center justify-center px-4 text-center md:text-white text-sm md:text-xl font-serif md:opacity-0 md:group-hover:opacity-100 md:transition-opacity md:duration-500"><?php echo esc_html( $caption ); ?></span>
         <?php endif; ?>
     </<?php echo esc_html( $tag ); ?>>
     <?php endwhile; ?>

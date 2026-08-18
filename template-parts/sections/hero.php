@@ -16,7 +16,7 @@ $text     = get_sub_field( 'hero_text' );
 $button   = get_sub_field( 'hero_button' );
 $position = get_sub_field( 'text_position' ) ?: 'none';
 ?>
-<section class="negarin-hero relative w-full overflow-hidden">
+<section class="negarin-page-section negarin-hero relative w-full overflow-hidden">
     <?php negarin_image( $image, 'negarin-hero', 'w-full h-auto object-cover', false ); ?>
 
     <?php if ( 'none' !== $position && ( $title || $text ) ) : ?>
