@@ -13,7 +13,7 @@ $image = get_sub_field( 'banner_image' );
 $link  = get_sub_field( 'banner_link' );
 $tag   = ! empty( $link['url'] ) ? 'a' : 'div';
 ?>
-<section class="negarin-banner py-4">
+<section class="negarin-page-section negarin-banner">
 	<<?php echo esc_html( $tag ); ?>
 		<?php if ( 'a' === $tag ) : ?>
 			href="<?php echo esc_url( $link['url'] ); ?>"
