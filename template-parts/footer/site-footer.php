@@ -17,21 +17,32 @@ $message_status = isset( $_GET['negarin_msg'] ) ? sanitize_key( wp_unslash( $_GE
 	<div class="max-w-lg mx-auto px-4">
 
 		<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="inline-block mb-8">
-			<?php if ( has_custom_logo() ) : ?>
-				<?php the_custom_logo(); ?>
+            <?php if ( has_custom_logo() ) : ?>
+
+                <?php
+                $custom_logo_id = get_theme_mod( 'custom_logo' );
+                $logo_url = wp_get_attachment_image_url( $custom_logo_id, 'full' );
+                ?>
+
+                    <img
+                            src="<?php echo esc_url( $logo_url ); ?>"
+                            class="logo-image"
+                            alt="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>"
+                    >
+
 			<?php else : ?>
 				<span class="font-serif tracking-[0.35em] text-2xl"><?php bloginfo( 'name' ); ?></span>
 			<?php endif; ?>
 		</a>
 
 		<?php if ( has_nav_menu( 'footer' ) ) : ?>
-			<nav class="mb-8" aria-label="<?php esc_attr_e( 'لینک‌های فوتر', 'negarin' ); ?>">
+			<nav class="mb-6" aria-label="<?php esc_attr_e( 'لینک‌های فوتر', 'negarin' ); ?>">
 				<?php
 				wp_nav_menu(
 					array(
 						'theme_location' => 'footer',
 						'container'      => false,
-						'menu_class'     => 'space-y-3 text-sm opacity-80',
+						'menu_class'     => 'space-y-6 text-lg',
 						'fallback_cb'    => false,
 					)
 				);
@@ -44,7 +55,7 @@ $message_status = isset( $_GET['negarin_msg'] ) ? sanitize_key( wp_unslash( $_GE
 			<?php wp_nonce_field( 'negarin_footer_message' ); ?>
 			<input type="text" name="website" value="" class="hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
 
-			<p class="text-sm mb-4">
+			<p class="text-lg mb-4">
 				<?php esc_html_e( 'برای نگارین بنویسید ، با اشتیاق خونده میشه :)', 'negarin' ); ?>
 			</p>
 
@@ -56,12 +67,12 @@ $message_status = isset( $_GET['negarin_msg'] ) ? sanitize_key( wp_unslash( $_GE
 				<p class="text-sm text-red-600 mb-3"><?php esc_html_e( 'لطفاً پیام خود را بنویسید.', 'negarin' ); ?></p>
 			<?php endif; ?>
 
-			<div class="flex flex-col sm:flex-row items-stretch gap-2">
+			<div class="flex flex-col sm:flex-row items-stretch gap-3">
 				<input
 					type="text"
 					name="message"
 					placeholder="<?php esc_attr_e( 'اینجا بنویسید...', 'negarin' ); ?>"
-					class="flex-1 border border-black/15 rounded-sm px-4 py-3 text-sm order-2 sm:order-1"
+					class="flex-1 border border-negarin-gray rounded-sm px-4 py-3 text-sm order-2 sm:order-1"
 				>
 				<button type="submit" class="btn btn--solid order-1 sm:order-2">
 					<?php esc_html_e( 'ارسال', 'negarin' ); ?>
@@ -74,7 +85,7 @@ $message_status = isset( $_GET['negarin_msg'] ) ? sanitize_key( wp_unslash( $_GE
 			<div class="flex items-center justify-center gap-4 mb-8">
 				<?php foreach ( $socials as $social ) : ?>
 					<a href="<?php echo esc_url( $social['url'] ); ?>" target="_blank" rel="noopener" class="w-9 h-9 rounded-full border border-black/10 flex items-center justify-center opacity-80 hover:opacity-100" aria-label="<?php echo esc_attr( ucfirst( $social['platform'] ) ); ?>">
-						<span class="dashicons dashicons-share"></span>
+						<?php echo negarin_social_icon($social['platform']); ?>
 					</a>
 				<?php endforeach; ?>
 			</div>
@@ -84,7 +95,7 @@ $message_status = isset( $_GET['negarin_msg'] ) ? sanitize_key( wp_unslash( $_GE
 			<div class="mb-8 text-sm opacity-70"><?php dynamic_sidebar( 'footer-1' ); ?></div>
 		<?php endif; ?>
 
-		<p class="text-xs opacity-50">
+		<p class="text-xs opacity-0">
 			&copy; <?php echo esc_html( gmdate( 'Y' ) ); ?> <?php bloginfo( 'name' ); ?> — <?php esc_html_e( 'تمامی حقوق محفوظ است.', 'negarin' ); ?>
 		</p>
 
