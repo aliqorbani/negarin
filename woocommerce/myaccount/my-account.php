@@ -23,7 +23,7 @@ $order_count   = AccountMenu::order_count( $current_user->ID );
 do_action( 'woocommerce_before_account_navigation' );
 ?>
 
-<div class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8 items-start">
+<div class="container max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8 items-start">
 
 	<div class="order-2 md:order-1">
 		<?php do_action( 'woocommerce_account_content' ); ?>

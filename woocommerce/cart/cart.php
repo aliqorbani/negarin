@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 do_action( 'woocommerce_before_cart' );
 ?>
 
-<div class="max-w-7xl mx-auto px-4 py-8">
+<div class="container max-w-7xl mx-auto px-4 py-8">
 
 	<?php if ( WC()->cart->is_empty() ) : ?>
 

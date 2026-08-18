@@ -22,7 +22,7 @@ if ( ! is_singular( 'product' ) ) {
 
 	<?php do_action( 'woocommerce_before_single_product' ); ?>
 
-	<div class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[1fr_380px] gap-8">
+	<div class="container max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[1fr_380px] gap-8">
 
 		<div class="md:order-1">
 			<?php get_template_part( 'template-parts/components/product-gallery' ); ?>

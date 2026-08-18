@@ -31,7 +31,7 @@ if ( ! is_ajax() ) {
 	<?php if ( $checkout->get_checkout_fields() ) : ?>
 		<?php do_action( 'woocommerce_checkout_before_customer_details' ); ?>
 
-		<div class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8 items-start">
+		<div class="container max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8 items-start">
 
 			<div class="order-1">
 

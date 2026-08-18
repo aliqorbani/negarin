@@ -14,7 +14,7 @@ get_header( 'shop' );
 do_action( 'woocommerce_before_main_content' );
 ?>
 
-<div class="max-w-7xl mx-auto px-4 py-10">
+<div class="container max-w-7xl mx-auto px-4 py-10">
 
 	<header class="text-center mb-10">
 		<h1 class="font-serif text-3xl mb-2"><?php woocommerce_page_title(); ?></h1>
