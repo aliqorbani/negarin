@@ -45,8 +45,8 @@ if ( ! $products->have_posts() ) {
 	return;
 }
 ?>
-<section class="negarin-product-carousel py-12">
-	<div class="max-w-7xl mx-auto px-4">
+<section class="negarin-page-section negarin-product-carousel">
+	<div class="container max-w-7xl mx-auto px-4">
 		<?php if ( $title ) : ?>
 			<h3 class="font-serif text-2xl mb-6 text-right"><?php echo esc_html( $title ); ?></h3>
 		<?php endif; ?>
