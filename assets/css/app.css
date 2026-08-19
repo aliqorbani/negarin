@@ -7,8 +7,8 @@
   font-family: 'Modam VF';
   src: url('../fonts/ModamVF.woff') format('woff-variations'),
     /* will be the standard and works in Safari now */
-       url('../fonts/ModamVF.woff2') format('woff2'),
-       url('../fonts/ModamVF.woff') format('woff');
+  url('../fonts/ModamVF.woff2') format('woff2'),
+  url('../fonts/ModamVF.woff') format('woff');
   /* for the other supporting browsers */
   font-display: fallback;
 }
@@ -17,12 +17,12 @@
 @font-face {
   font-family: Modam;
   src: url('../fonts/ModamWeb-Regular.woff2') format('woff2'),
-       url('../fonts/ModamWeb-Regular.woff') format('woff');
+  url('../fonts/ModamWeb-Regular.woff') format('woff');
 }
 @font-face {
   font-family: Modam;
   src: url('../fonts/ModamWeb-Bold.woff2') format('woff2'),
-       url('../fonts/ModamWeb-Bold.woff') format('woff');
+  url('../fonts/ModamWeb-Bold.woff') format('woff');
   font-weight: 700;
 }
 
@@ -203,4 +203,27 @@ body {
 
 .section-image-text{
   @apply text-center text-sm/6 md:text-4xl md:leading-[60px] w-full md:max-w-lg whitespace-normal md:whitespace-pre;
+}
+
+/* ---------------------------------------------------------------------
+ * Turbo Drive (assets/js/spa.js)
+ * ------------------------------------------------------------------- */
+
+/* The built-in top progress bar Turbo shows during a visit. */
+.turbo-progress-bar {
+  height: 3px;
+  @apply bg-negarin-ink;
+}
+
+/* Connectivity banner — offline / server-down messages, see spa.js. */
+.negarin-connectivity-banner {
+  @apply fixed inset-x-0 top-0 z-[60] flex items-center justify-center gap-4
+  -translate-y-full bg-negarin-ink px-4 py-3 text-center text-sm text-white
+  transition-transform duration-300;
+}
+.negarin-connectivity-banner.is-visible {
+  @apply translate-y-0;
+}
+.negarin-connectivity-banner__retry {
+  @apply rounded-sm border border-white/40 px-3 py-1 text-xs hover:bg-white hover:text-negarin-ink transition-colors;
 }

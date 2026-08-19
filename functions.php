@@ -6,7 +6,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+    exit;
 }
 
 define( 'NEGARIN_VERSION', '1.0.0' );
@@ -20,69 +20,71 @@ define( 'NEGARIN_URI', get_template_directory_uri() );
  * Negarin\Helpers\Foo  => inc/helpers/Foo.php
  */
 spl_autoload_register(
-	function ( $class ) {
-		$prefix = 'Negarin\\';
+    function ( $class ) {
+        $prefix = 'Negarin\\';
 
-		if ( ! str_starts_with( $class, $prefix ) ) {
-			return;
-		}
+        if ( ! str_starts_with( $class, $prefix ) ) {
+            return;
+        }
 
-		$relative   = substr( $class, strlen( $prefix ) );
-		$parts      = explode( '\\', $relative );
-		$class_name = array_pop( $parts );
+        $relative   = substr( $class, strlen( $prefix ) );
+        $parts      = explode( '\\', $relative );
+        $class_name = array_pop( $parts );
 
-		// Remaining namespace segments map 1:1 to lowercase nested folders
-		// under inc/, e.g. Negarin\Services\Sms\Foo => inc/services/Sms/Foo.php
-		$folder_parts = $parts ? $parts : array( 'classes' );
-		$folder_parts[0] = strtolower( $folder_parts[0] );
+        // Remaining namespace segments map 1:1 to lowercase nested folders
+        // under inc/, e.g. Negarin\Services\Sms\Foo => inc/services/Sms/Foo.php
+        $folder_parts = $parts ? $parts : array( 'classes' );
+        $folder_parts[0] = strtolower( $folder_parts[0] );
 
-		$path = NEGARIN_DIR . '/inc/' . implode( '/', $folder_parts ) . '/' . $class_name . '.php';
+        $path = NEGARIN_DIR . '/inc/' . implode( '/', $folder_parts ) . '/' . $class_name . '.php';
 
-		if ( file_exists( $path ) ) {
-			require_once $path;
-		}
-	}
+        if ( file_exists( $path ) ) {
+            require_once $path;
+        }
+    }
 );
 
 /**
  * Plain function-based includes (hooks, template tags, woocommerce glue).
  */
 $negarin_includes = array(
-	'/inc/helpers/template-tags.php',
-	'/inc/hooks/setup.php',
-	'/inc/hooks/enqueue.php',
-	'/inc/hooks/acf.php',
-	'/inc/hooks/woocommerce.php',
-	'/inc/hooks/nav-menus.php',
-	'/inc/hooks/image-sizes.php',
-	'/inc/hooks/otp-guards.php',
-	'/inc/hooks/woocommerce.php',
+    '/inc/helpers/template-tags.php',
+    '/inc/hooks/setup.php',
+    '/inc/hooks/enqueue.php',
+    '/inc/hooks/acf.php',
+    '/inc/hooks/woocommerce.php',
+    '/inc/hooks/nav-menus.php',
+    '/inc/hooks/image-sizes.php',
+    '/inc/hooks/otp-guards.php',
+    '/inc/hooks/turbo.php',
+    '/inc/hooks/woocommerce.php',
 );
 $negarin_includes = array_unique( $negarin_includes );
 
 foreach ( $negarin_includes as $file ) {
-	$full = NEGARIN_DIR . $file;
-	if ( file_exists( $full ) ) {
-		require_once $full;
-	}
+    $full = NEGARIN_DIR . $file;
+    if ( file_exists( $full ) ) {
+        require_once $full;
+    }
 }
 
 /**
  * Boot service classes.
  */
 add_action(
-	'after_setup_theme',
-	function () {
-		new \Negarin\Services\ThemeOptions();
-		new \Negarin\Services\FlexibleContent();
-		new \Negarin\Services\OtpAuth();
-		new \Negarin\Services\CustomOrder();
-		new \Negarin\Services\ProductFields();
-		new \Negarin\Services\CheckoutFields();
-		new \Negarin\Services\AccountMenu();
-		new \Negarin\Services\AddressBook();
-		new \Negarin\Services\BlogFields();
-		new \Negarin\Services\Seo();
-		new \Negarin\Services\FooterMessage();
-	}
+    'after_setup_theme',
+    function () {
+        new \Negarin\Services\ThemeOptions();
+        new \Negarin\Services\FlexibleContent();
+        new \Negarin\Services\OtpAuth();
+        new \Negarin\Services\QuickSearch();
+        new \Negarin\Services\CustomOrder();
+        new \Negarin\Services\ProductFields();
+        new \Negarin\Services\CheckoutFields();
+        new \Negarin\Services\AccountMenu();
+        new \Negarin\Services\AddressBook();
+        new \Negarin\Services\BlogFields();
+        new \Negarin\Services\Seo();
+        new \Negarin\Services\FooterMessage();
+    }
 );

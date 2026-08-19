@@ -43,10 +43,10 @@ if ( ! defined( 'ABSPATH' ) ) {
             class="fixed inset-y-0 right-0 z-50 h-full w-full sm:max-w-sm md:max-w-md bg-white overflow-hidden shadow-xl <?php echo is_admin_bar_showing() ? 'translate-y-8': '' ?>"
     >
         <div class="relative h-full">
+
             <div class="relative flex items-center justify-center px-4 py-5 border-b border-black/10">
                 <button type="button" class="absolute left-4 text-2xl leading-none" @click="menuOpen = false; panel = 0" aria-label="<?php esc_attr_e( 'بستن منو', 'negarin' ); ?>">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M14.1667 5.83331L5.83337 14.1666M5.83337 5.83331L14.1667 14.1666" stroke="#333333" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M14.1667 5.83331L5.83337 14.1666M5.83337 5.83331L14.1667 14.1666" stroke="#333333" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
                 <?php if ( has_custom_logo() ) :
                     $custom_logo_id = get_theme_mod( 'custom_logo' );
