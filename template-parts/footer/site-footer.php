@@ -42,7 +42,7 @@ $message_status = isset( $_GET['negarin_msg'] ) ? sanitize_key( wp_unslash( $_GE
 					array(
 						'theme_location' => 'footer',
 						'container'      => false,
-						'menu_class'     => 'space-y-6 text-lg',
+						'menu_class'     => 'space-y-6 text-sm md:text-lg',
 						'fallback_cb'    => false,
 					)
 				);
@@ -55,7 +55,7 @@ $message_status = isset( $_GET['negarin_msg'] ) ? sanitize_key( wp_unslash( $_GE
 			<?php wp_nonce_field( 'negarin_footer_message' ); ?>
 			<input type="text" name="website" value="" class="hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
 
-			<p class="text-lg mb-4">
+			<p class="text-sm md:text-lg mb-2 md:mb-4">
 				<?php esc_html_e( 'برای نگارین بنویسید ، با اشتیاق خونده میشه :)', 'negarin' ); ?>
 			</p>
 
@@ -67,14 +67,15 @@ $message_status = isset( $_GET['negarin_msg'] ) ? sanitize_key( wp_unslash( $_GE
 				<p class="text-sm text-red-600 mb-3"><?php esc_html_e( 'لطفاً پیام خود را بنویسید.', 'negarin' ); ?></p>
 			<?php endif; ?>
 
-			<div class="flex flex-col sm:flex-row items-stretch gap-3">
-				<input
+			<div class="flex sm:flex-row items-stretch gap-3">
+				<textarea title="اینجا بنویسید..."
 					type="text"
+                          rows="1"
 					name="message"
 					placeholder="<?php esc_attr_e( 'اینجا بنویسید...', 'negarin' ); ?>"
-					class="flex-1 border border-negarin-gray rounded-sm px-4 py-3 text-sm order-2 sm:order-1"
-				>
-				<button type="submit" class="btn btn--solid order-1 sm:order-2">
+					class="flex-1 border border-negarin-gray rounded-sm px-4 py-3 text-sm"
+                ></textarea>
+				<button type="submit" class="btn btn--solid">
 					<?php esc_html_e( 'ارسال', 'negarin' ); ?>
 				</button>
 			</div>

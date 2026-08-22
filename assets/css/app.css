@@ -202,7 +202,7 @@ body {
 }
 
 .section-image-text{
-  @apply text-center text-sm/6 md:text-4xl md:leading-[60px] w-full md:max-w-lg whitespace-normal md:whitespace-pre;
+  @apply text-center text-sm/6 md:text-4xl md:leading-[60px] w-full md:max-w-lg whitespace-normal md:whitespace-pre-wrap;
 }
 
 /* ---------------------------------------------------------------------
