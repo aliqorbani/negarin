@@ -16,7 +16,7 @@ remove_action( 'woocommerce_after_main_content', 'woocommerce_output_content_wra
 
 // Reposition breadcrumbs.
 remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb', 20 );
-add_action( 'negarin_content_top', 'woocommerce_breadcrumb', 20 );
+//add_action( 'negarin_content_top', 'woocommerce_breadcrumb', 20 );
 
 // Ensure archive/shop grid uses our column count via a filter instead of a shortcode attribute.
 add_filter(

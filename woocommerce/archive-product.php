@@ -14,7 +14,7 @@ get_header( 'shop' );
 do_action( 'woocommerce_before_main_content' );
 ?>
 
-<div class="container max-w-7xl mx-auto px-4 py-10">
+<div class="container max-w-7xl mx-auto px-4 py-10 flex flex-col">
 
 	<header class="text-center mb-10">
 		<h1 class="font-serif text-3xl mb-2"><?php woocommerce_page_title(); ?></h1>
@@ -81,6 +81,6 @@ do_action( 'woocommerce_before_main_content' );
 
 <?php
 do_action( 'woocommerce_after_main_content' );
-do_action( 'woocommerce_sidebar' );
+//do_action( 'woocommerce_sidebar' );
 
 get_footer( 'shop' );

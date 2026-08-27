@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
             <a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="negarin-logo">
                 <img
                         src="<?php echo esc_url( $logo_url ); ?>"
-                        class="logo-image max-w-[90px] md:max-w-[240px]"
+                        class="logo-image"
                         alt="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>"
                 >
             </a>
