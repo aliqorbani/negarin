@@ -14,6 +14,7 @@
 namespace Negarin\Services;
 
 use Negarin\Services\Sms\SmsGatewayInterface;
+use Negarin\Services\Sms\MelliPayamakGateway;
 use Negarin\Services\Sms\KavenegarGateway;
 use Negarin\Services\Sms\LogGateway;
 use WP_REST_Request;
@@ -28,7 +29,7 @@ class OtpAuth {
 
     private const OTP_TTL_SECONDS      = 120; // code expires after 2 minutes.
     private const RESEND_COOLDOWN      = 60;  // must wait 60s between sends.
-    private const MAX_ATTEMPTS_PER_HR  = 5;   // rate limit per phone number.
+    private const MAX_ATTEMPTS_PER_HR  = 6;   // rate limit per phone number.
     private const CODE_LENGTH          = 5;
 
     public function __construct() {
@@ -37,22 +38,35 @@ class OtpAuth {
 
     /**
      * Resolve the active SMS gateway. Filterable so any provider can replace
-     * Kavenegar without touching the OTP flow itself.
+     * the default without touching the OTP flow itself.
      *
-     * Falls back to LogGateway (writes the code to WooCommerce logs +
-     * error_log instead of sending a real SMS) whenever no Kavenegar API
-     * key is configured yet — e.g. before a Kavenegar panel/credit exists
-     * — so the OTP flow stays testable. Set NEGARIN_OTP_TEST_MODE to true
-     * in wp-config.php to force logging even when a real key is present
-     * (useful on staging, to avoid burning SMS credit).
+     * Auto-detects by configured credentials, in priority order:
+     * MelliPayamak (NEGARIN_MELLIPAYAMAK_API_KEY + NEGARIN_OTP_BODY_ID) ->
+     * Kavenegar (NEGARIN_KAVENEGAR_API_KEY) -> LogGateway (writes the code
+     * to WooCommerce logs + error_log instead of sending a real SMS, so the
+     * OTP flow stays testable before any provider credentials exist). Set
+     * NEGARIN_OTP_TEST_MODE to true in wp-config.php to force logging even
+     * when real credentials are present (useful on staging, to avoid
+     * burning SMS credit).
      */
     private function gateway(): SmsGatewayInterface {
-        $kavenegar_configured = defined( 'NEGARIN_KAVENEGAR_API_KEY' ) && ! empty( NEGARIN_KAVENEGAR_API_KEY );
-        $force_test_mode      = defined( 'NEGARIN_OTP_TEST_MODE' ) && NEGARIN_OTP_TEST_MODE;
+        $force_test_mode = defined( 'NEGARIN_OTP_TEST_MODE' ) && NEGARIN_OTP_TEST_MODE;
 
-        $default_gateway = ( $force_test_mode || ! $kavenegar_configured )
-            ? new LogGateway()
-            : new KavenegarGateway();
+        if ( $force_test_mode ) {
+            $default_gateway = new LogGateway();
+        } else {
+            $mellipayamak_configured = defined( 'NEGARIN_MELLIPAYAMAK_API_KEY' ) && ! empty( NEGARIN_MELLIPAYAMAK_API_KEY )
+                && defined( 'NEGARIN_OTP_BODY_ID' ) && ! empty( NEGARIN_OTP_BODY_ID );
+            $kavenegar_configured    = defined( 'NEGARIN_KAVENEGAR_API_KEY' ) && ! empty( NEGARIN_KAVENEGAR_API_KEY );
+
+            if ( $mellipayamak_configured ) {
+                $default_gateway = new MelliPayamakGateway();
+            } elseif ( $kavenegar_configured ) {
+                $default_gateway = new KavenegarGateway();
+            } else {
+                $default_gateway = new LogGateway();
+            }
+        }
 
         /**
          * @param SmsGatewayInterface $gateway

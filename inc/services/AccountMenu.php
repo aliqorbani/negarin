@@ -11,49 +11,68 @@
 namespace Negarin\Services;
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+    exit;
 }
 
 class AccountMenu {
 
-	public function __construct() {
-		add_filter( 'woocommerce_account_menu_items', array( $this, 'trim_menu' ) );
-	}
+    public function __construct() {
+        add_filter( 'woocommerce_account_menu_items', array( $this, 'trim_menu' ) );
+    }
 
-	public function trim_menu( array $items ): array {
-		$keep = array_intersect_key(
-			$items,
-			array_flip( array( 'edit-account', 'orders', 'customer-logout' ) )
-		);
+    public function trim_menu( array $items ): array {
+        $keep = array_intersect_key(
+            $items,
+            array_flip( array( 'edit-account', 'orders', 'customer-logout' ) )
+        );
 
-		// Re-label to match the export exactly.
-		if ( isset( $keep['edit-account'] ) ) {
-			$keep['edit-account'] = __( 'اطلاعات من', 'negarin' );
-		}
-		if ( isset( $keep['orders'] ) ) {
-			$keep['orders'] = __( 'سفارش‌های من', 'negarin' );
-		}
-		if ( isset( $keep['customer-logout'] ) ) {
-			$keep['customer-logout'] = __( 'خروج از حساب کاربری', 'negarin' );
-		}
+        // Re-label to match the export exactly.
+        if ( isset( $keep['edit-account'] ) ) {
+            $keep['edit-account'] = __( 'اطلاعات من', 'negarin' );
+        }
+        if ( isset( $keep['orders'] ) ) {
+            $keep['orders'] = __( 'سفارش‌های من', 'negarin' );
+        }
+        if ( isset( $keep['customer-logout'] ) ) {
+            $keep['customer-logout'] = __( 'خروج از حساب کاربری', 'negarin' );
+        }
 
-		// Preserve a sane order regardless of what core/plugins registered.
-		$order = array( 'edit-account', 'orders', 'customer-logout' );
-		uksort( $keep, fn( $a, $b ) => array_search( $a, $order, true ) <=> array_search( $b, $order, true ) );
+        // Preserve a sane order regardless of what core/plugins registered.
+        $order = array( 'edit-account', 'orders', 'customer-logout' );
+        uksort( $keep, fn( $a, $b ) => array_search( $a, $order, true ) <=> array_search( $b, $order, true ) );
 
-		return $keep;
-	}
+        return $keep;
+    }
 
-	public static function order_count( int $user_id ): int {
-		return (int) wc_get_customer_order_count( $user_id );
-	}
+    public static function order_count( int $user_id ): int {
+        return (int) wc_get_customer_order_count( $user_id );
+    }
 
-	public static function dashicon_for( string $endpoint ): string {
-		return match ( $endpoint ) {
-			'edit-account'     => 'dashicons-admin-users',
-			'orders'            => 'dashicons-bag',
-			'customer-logout'   => 'dashicons-migrate',
-			default             => 'dashicons-marker',
-		};
-	}
+    public static function dashicon_for( string $endpoint ): string {
+        return match ( $endpoint ) {
+            'edit-account'     => 'dashicons-admin-users',
+            'orders'            => 'dashicons-bag',
+            'customer-logout'   => 'dashicons-migrate',
+            default             => 'dashicons-marker',
+        };
+    }
+
+    /**
+     * Label of the account endpoint currently being viewed, or null on the
+     * dashboard root (no endpoint). Used by template-parts/header/site-header.php
+     * to render the mobile "back to menu" row only where it's needed.
+     */
+    public static function current_endpoint_label(): ?string {
+        if ( ! is_wc_endpoint_url() ) {
+            return null;
+        }
+
+        foreach ( wc_get_account_menu_items() as $endpoint => $label ) {
+            if ( is_wc_endpoint_url( $endpoint ) ) {
+                return $label;
+            }
+        }
+
+        return null;
+    }
 }

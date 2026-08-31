@@ -12,6 +12,7 @@ import { negarinSearch } from './search.js';
 import './ajax-cart.js';
 import './cart.js';
 import './checkout.js';
+import './header-offset.js';
 
 window.Alpine = Alpine;
 Alpine.data('negarinOtp', negarinOtp);

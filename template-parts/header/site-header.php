@@ -69,6 +69,34 @@ if ( ! defined( 'ABSPATH' ) ) {
         </div>
     </div>
 
+    <?php
+    $negarin_account_label = function_exists( 'is_account_page' ) && is_account_page() && is_user_logged_in()
+            ? \Negarin\Services\AccountMenu::current_endpoint_label()
+            : null;
+    ?>
+    <?php if ( $negarin_account_label ) : ?>
+        <!--
+            Mobile only: the "menu" screen (greeting + nav) lives on the
+            dashboard root (template-parts/components/account-menu.php);
+            this is the sticky way back to it from any other My Account
+            endpoint. Living inside .negarin-header means it sticks as
+            part of the same block, with no separate offset to compute.
+        -->
+        <div class="md:hidden border-t border-negarin-line">
+            <div class="container max-w-7xl mx-auto px-4">
+                <a
+                        href="<?php echo esc_url( wc_get_page_permalink( 'myaccount' ) ); ?>"
+                        class="flex items-center justify-between py-3 text-sm"
+                >
+                    <span><?php echo esc_html( $negarin_account_label ); ?></span>
+                    <svg width="7" height="12" viewBox="0 0 7 12" fill="none" aria-hidden="true">
+                        <path d="M1 1L6 6L1 11" stroke="#333333" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <?php get_template_part( 'template-parts/header/offcanvas-menu' ); ?>
     <?php get_template_part( 'template-parts/header/search-modal' ); ?>
 </header>

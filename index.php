@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 get_header();
 ?>
-<main id="main-content" class="container max-w-4xl mx-auto px-4 py-16">
+<main id="main-content" class="container mx-auto px-4 py-4">
 	<?php if ( have_posts() ) : ?>
 		<div class="grid gap-10">
 			<?php
