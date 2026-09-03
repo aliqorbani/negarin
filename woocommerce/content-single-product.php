@@ -34,8 +34,8 @@ if ( ! is_singular( 'product' ) ) {
 				<h1 class="font-serif text-2xl mb-4"><?php the_title(); ?></h1>
 
 				<div class="flex items-center justify-between border-t border-black/10 py-4 text-sm">
-					<span class="text-lg"><?php echo wp_kses_post( $product->get_price_html() ); ?></span>
 					<span class="opacity-60"><?php esc_html_e( 'قیمت:', 'negarin' ); ?></span>
+					<span class="text-lg"><?php echo wp_kses_post( $product->get_price_html() ); ?></span>
 				</div>
 			</div>
 

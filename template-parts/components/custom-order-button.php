@@ -20,8 +20,8 @@ if ( ! CustomOrder::is_enabled_for( $product_id ) ) {
 	return;
 }
 ?>
-<button type="button" class="btn btn--outline w-full mt-3" @click="customOrderOpen = true">
-	<?php esc_html_e( 'سفارش با اندازه شخصی', 'negarin' ); ?>
+<button type="button" class="btn btn--solid w-full mt-3 md:mt-0" @click="customOrderOpen = true">
+	<?php esc_html_e( 'سفارش شخصی', 'negarin' ); ?>
 </button>
 
 <?php get_template_part( 'template-parts/components/custom-order-modal' ); ?>

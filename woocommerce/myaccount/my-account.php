@@ -29,13 +29,13 @@ do_action( 'woocommerce_before_account_navigation' );
 $is_dashboard_root = ! is_wc_endpoint_url();
 ?>
 
-<div class="container max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8 items-start">
+<div class="container max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-8 items-start">
 
-    <div class="<?php echo $is_dashboard_root ? 'hidden md:block' : ''; ?> order-2 md:order-1">
+    <div class="<?php echo $is_dashboard_root ? 'hidden md:block' : ''; ?> order-2 md:col-start-2">
         <?php do_action( 'woocommerce_account_content' ); ?>
     </div>
 
-    <div class="<?php echo $is_dashboard_root ? '' : 'hidden md:block'; ?> order-1 md:order-2 md:sticky md:top-[calc(var(--negarin-header-h,80px)+1.5rem)]">
+    <div class="<?php echo $is_dashboard_root ? '' : 'hidden md:block'; ?> order-1 md:col-start-1 md:sticky md:top-[calc(var(--negarin-header-h,80px)+1.5rem)]">
         <?php get_template_part( 'template-parts/components/account-menu' ); ?>
     </div>
 

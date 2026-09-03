@@ -52,10 +52,10 @@ add_filter(
 add_action(
     'admin_notices',
     function () {
-        $kavenegar_configured = defined( 'NEGARIN_KAVENEGAR_API_KEY' ) && ! empty( NEGARIN_KAVENEGAR_API_KEY );
+        $otp_sms_configured = defined( 'NEGARIN_MELLIPAYAMAK_API_KEY' ) && ! empty( NEGARIN_MELLIPAYAMAK_API_KEY );
         $force_test_mode      = defined( 'NEGARIN_OTP_TEST_MODE' ) && NEGARIN_OTP_TEST_MODE;
 
-        if ( ( $force_test_mode || ! $kavenegar_configured ) && current_user_can( 'activate_plugins' ) ) {
+        if ( ( $force_test_mode || ! $otp_sms_configured ) && current_user_can( 'activate_plugins' ) ) {
             echo '<div class="notice notice-warning"><p>' .
                 esc_html__( 'Negarin: OTP codes are currently only being logged (WooCommerce → Status → Logs → source "negarin-otp"), not sent as real SMS. Define NEGARIN_KAVENEGAR_API_KEY in wp-config.php before launch.', 'negarin' ) .
                 '</p></div>';

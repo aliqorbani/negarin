@@ -80,7 +80,7 @@ class QuickSearch {
 				continue;
 			}
 
-			$image_url = wp_get_attachment_image_url( $product->get_image_id(), 'negarin-product-card' );
+			$image_url = wp_get_attachment_image_url( $product->get_image_id(), 'negarin-grid-3' );
 
 			$results[] = array(
 				'id'        => $product->get_id(),

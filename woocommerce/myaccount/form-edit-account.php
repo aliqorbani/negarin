@@ -34,13 +34,13 @@ do_action( 'woocommerce_before_edit_account_form' ); ?>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
 
         <div class="form-row">
-            <label for="account_last_name"><?php esc_html_e( 'نام خانوادگی', 'negarin' ); ?></label>
-            <input type="text" class="input-text" name="account_last_name" id="account_last_name" value="<?php echo esc_attr( $user->last_name ); ?>">
+            <label for="account_first_name"><?php esc_html_e( 'نام', 'negarin' ); ?></label>
+            <input type="text" class="input-text" name="account_first_name" id="account_first_name" value="<?php echo esc_attr( $user->first_name ?: WC()->customer->get_billing_first_name() ); ?>">
         </div>
 
         <div class="form-row">
-            <label for="account_first_name"><?php esc_html_e( 'نام', 'negarin' ); ?></label>
-            <input type="text" class="input-text" name="account_first_name" id="account_first_name" value="<?php echo esc_attr( $user->first_name ); ?>">
+            <label for="account_last_name"><?php esc_html_e( 'نام خانوادگی', 'negarin' ); ?></label>
+            <input type="text" class="input-text" name="account_last_name" id="account_last_name" value="<?php echo esc_attr( $user->last_name ?? WC()->customer->get_billing_last_name() ); ?>">
         </div>
 
         <div class="form-row">
@@ -50,10 +50,16 @@ do_action( 'woocommerce_before_edit_account_form' ); ?>
 
         <div class="form-row">
             <label for="account_email"><?php esc_html_e( 'آدرس ایمیل', 'negarin' ); ?></label>
-            <input type="email" class="input-text" name="account_email" id="account_email" value="<?php echo esc_attr( $user->user_email ); ?>">
+            <input type="email" class="input-text" name="account_email" id="account_email" value="<?php echo esc_attr( $user->user_email ?? WC()->customer->get_billing_email() ); ?>">
         </div>
 
-        <div class="md:col-span-2 bg-negarin-cream p-5 flex items-start justify-between">
+        <div class="md:col-span-2 bg-white border border-[#e4e7ec] p-5 flex items-start justify-between">
+            <div class="text-right">
+                <p class="text-sm mb-1"><?php esc_html_e( 'منزل', 'negarin' ); ?></p>
+                <p class="text-sm opacity-70">
+                    <?php echo $address ? wp_kses_post( $address ) : esc_html__( 'آدرسی ثبت نشده است.', 'negarin' ); ?>
+                </p>
+            </div>
             <div class="flex items-center gap-3">
                 <a href="<?php echo esc_url( wc_get_endpoint_url( 'edit-address', 'billing', wc_get_page_permalink( 'myaccount' ) ) ); ?>" aria-label="<?php esc_attr_e( 'ویرایش آدرس', 'negarin' ); ?>">
                     <span class="dashicons dashicons-edit"></span>
@@ -61,12 +67,6 @@ do_action( 'woocommerce_before_edit_account_form' ); ?>
                 <a href="<?php echo esc_url( AddressBook::clear_address_url() ); ?>" aria-label="<?php esc_attr_e( 'حذف آدرس', 'negarin' ); ?>" onclick="return confirm('<?php esc_attr_e( 'آدرس منزل حذف شود؟', 'negarin' ); ?>');">
                     <span class="dashicons dashicons-trash"></span>
                 </a>
-            </div>
-            <div class="text-right">
-                <p class="text-sm mb-1"><?php esc_html_e( 'منزل', 'negarin' ); ?></p>
-                <p class="text-sm opacity-70">
-                    <?php echo $address ? wp_kses_post( $address ) : esc_html__( 'آدرسی ثبت نشده است.', 'negarin' ); ?>
-                </p>
             </div>
         </div>
 

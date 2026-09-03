@@ -113,7 +113,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<li>
 							<a :href="item.permalink" class="flex items-center gap-4 px-5 py-3 hover:bg-negarin-cream/60 transition-colors" @click="searchOpen = false">
 								<span class="shrink-0 w-14 h-16 bg-negarin-cream overflow-hidden">
-									<img :src="item.image" :alt="item.title" class="w-full h-full object-cover">
+									<img :src="item.image" :alt="item.title" class="w-full h-full object-contain">
 								</span>
 								<span class="flex-1 min-w-0 text-right">
 									<span class="block truncate text-sm" x-text="item.title"></span>

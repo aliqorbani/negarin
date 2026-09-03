@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Remove default WC page wrappers — templates/woocommerce.php provides its own.
 remove_action( 'woocommerce_before_main_content', 'woocommerce_output_content_wrapper', 10 );
 remove_action( 'woocommerce_after_main_content', 'woocommerce_output_content_wrapper_end', 10 );
-
+remove_action( 'woocommerce_sidebar', 'woocommerce_get_sidebar', 10 );
 // Reposition breadcrumbs.
 remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb', 20 );
 //add_action( 'negarin_content_top', 'woocommerce_breadcrumb', 20 );
