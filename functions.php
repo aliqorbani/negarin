@@ -86,5 +86,6 @@ add_action(
         new \Negarin\Services\BlogFields();
         new \Negarin\Services\Seo();
         new \Negarin\Services\FooterMessage();
+        new \Negarin\Services\BuildCleaner();
     }
 );

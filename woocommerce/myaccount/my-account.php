@@ -31,7 +31,20 @@ $is_dashboard_root = ! is_wc_endpoint_url();
 
 <div class="container max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-8 items-start">
 
-    <div class="<?php echo $is_dashboard_root ? 'hidden md:block' : ''; ?> order-2 md:col-start-2">
+    <?php
+    /*
+     * `negarin-account-content` is load-bearing, not just a styling hook:
+     * assets/js/spa.js targets `.negarin-account-content form` to opt every
+     * My Account form (edit-account, edit-address, lost-password, ...) out
+     * of Turbo Drive's form handling. WooCommerce's own account form
+     * handlers only redirect on success — on a validation error they just
+     * re-render the same page (200, no redirect), which Turbo Drive treats
+     * as a hard error for any form it intercepted ("Form responses must
+     * redirect to another location"). Keep this class on whatever wraps
+     * `woocommerce_account_content` even if the surrounding markup changes.
+     */
+    ?>
+    <div class="negarin-account-content <?php echo $is_dashboard_root ? 'hidden md:block' : ''; ?> order-2 md:col-start-2">
         <?php do_action( 'woocommerce_account_content' ); ?>
     </div>
 

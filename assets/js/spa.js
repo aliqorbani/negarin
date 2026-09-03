@@ -14,6 +14,17 @@
  *    buttons, the cart quantity form, coupon/login/register forms) —
  *    tagged `data-turbo="false"` below so Turbo leaves the click/submit
  *    alone and WooCommerce's existing JS keeps working exactly as before.
+ * 3. My Account forms (edit-account, edit-address, lost-password, ...) —
+ *    also tagged `data-turbo="false"` below via `.negarin-account-content
+ *    form`. These submit as plain POSTs and WooCommerce's own handlers
+ *    only issue an HTTP redirect on SUCCESS; on a validation error they
+ *    just re-render the same page with a notice (200, no redirect). Turbo
+ *    Drive requires every form response to be a redirect, so an account
+ *    form left under Turbo's control throws "Form responses must redirect
+ *    to another location" the moment a user hits a validation error. The
+ *    my-account.php meta tag above only stops Turbo from *navigating* into
+ *    these pages — it does nothing for forms already sitting on a loaded
+ *    page — so this needs its own, separate opt-out.
  */
 
 import * as Turbo from '@hotwired/turbo';
@@ -32,6 +43,7 @@ const TURBO_EXCLUDED_SELECTORS = [
   '.woocommerce-form-register',
   'a.remove_from_cart_button',
   '.woocommerce-cart-form .remove',
+  '.negarin-account-content form',
 ];
 
 function excludeWooCommerceInteractionsFromTurbo() {

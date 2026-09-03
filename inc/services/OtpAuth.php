@@ -34,6 +34,20 @@ class OtpAuth {
 
     public function __construct() {
         add_action( 'rest_api_init', array( $this, 'register_routes' ) );
+        add_filter( 'auth_cookie_expiration', array( $this, 'filter_auth_cookie_expiration' ), 10, 3 );
+    }
+
+    /**
+     * How long a session survives, including after the browser is fully
+     * closed (handle_verify() always calls wp_set_auth_cookie() with
+     * $remember = true, so WordPress's own default here would already be
+     * 14 days — this makes the duration an explicit, configurable value
+     * instead of an implicit core default). Override by defining
+     * NEGARIN_LOGIN_DURATION_DAYS in wp-config.php.
+     */
+    public function filter_auth_cookie_expiration( int $expiration, int $user_id, bool $remember ): int {
+        $days = defined( 'NEGARIN_LOGIN_DURATION_DAYS' ) ? (int) NEGARIN_LOGIN_DURATION_DAYS : 7;
+        return $days * DAY_IN_SECONDS;
     }
 
     /**
