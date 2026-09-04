@@ -64,7 +64,7 @@ if ( ! is_singular( 'product' ) ) {
 				<?php endif; ?>
 			</div>
 
-			<?php if ( $product->is_purchasable() && $product->is_in_stock() ) : ?>
+			<?php if (false && $product->is_purchasable() && $product->is_in_stock() ) : ?>
 				<button type="button" class="order-3 w-full mt-3 border border-black/10 rounded-sm px-4 py-3 flex items-center justify-center gap-2 text-xs">
 					<span><?php esc_html_e( 'این کالا را در ۴ قسط بخرید', 'negarin' ); ?></span>
 					<span class="bg-[#1E88F0] text-white rounded px-2 py-1 font-bold text-[10px]">Snapp!Pay</span>

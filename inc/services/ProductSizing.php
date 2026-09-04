@@ -238,6 +238,10 @@ class ProductSizing {
 			'attribute_' . self::taxonomy() => $match['slug'],
 		);
 
+        if ( ! WC()->cart ) {
+            wc_load_cart();
+        }
+
 		$cart_item_key = WC()->cart->add_to_cart( $product_id, 1, $variation_id, $variation_attributes );
 
 		if ( ! $cart_item_key ) {

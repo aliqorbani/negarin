@@ -164,6 +164,21 @@ function negarin_section_bg_class( string $key ): string {
     return $map[ $key ] ?? $map['white'];
 }
 
+/**
+ * "سایز: ۳۲" for a standard-size cart line, "سفارش شخصی" for a custom
+ * order line, or '' for anything else (e.g. a plain simple product).
+ * Used by template-parts/components/mini-cart-dropdown.php.
+ */
+function negarin_cart_item_size_label( array $cart_item, $product ): string {
+    if ( $product instanceof WC_Product_Variation ) {
+        return $product->get_attribute_summary();
+    }
+    if ( ! empty( $cart_item['negarin_custom_order'] ) ) {
+        return __( 'سفارش شخصی', 'negarin' );
+    }
+    return '';
+}
+
 function negarin_social_icon(string $social ): string {
     $social_icons = [
         'negarin'=>'',

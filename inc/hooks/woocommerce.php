@@ -7,7 +7,7 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+    exit;
 }
 
 // Remove default WC page wrappers — templates/woocommerce.php provides its own.
@@ -20,20 +20,30 @@ remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb', 20 )
 
 // Ensure archive/shop grid uses our column count via a filter instead of a shortcode attribute.
 add_filter(
-	'loop_shop_columns',
-	function () {
-		return 4;
-	}
+    'loop_shop_columns',
+    function () {
+        return 4;
+    }
 );
 
 add_filter(
-	'woocommerce_add_to_cart_fragments',
-	function ( $fragments ) {
-		ob_start();
-		get_template_part( 'template-parts/components/cart-drawer-count' );
-		$fragments['.negarin-cart-count'] = ob_get_clean();
-		return $fragments;
-	}
+    'woocommerce_add_to_cart_fragments',
+    function ( $fragments ) {
+        ob_start();
+        get_template_part( 'template-parts/components/cart-drawer-count' );
+        $fragments['.negarin-cart-count'] = ob_get_clean();
+        return $fragments;
+    }
+);
+
+add_filter(
+    'woocommerce_add_to_cart_fragments',
+    function ( $fragments ) {
+        ob_start();
+        get_template_part( 'template-parts/components/mini-cart-dropdown' );
+        $fragments['#negarin-mini-cart'] = ob_get_clean();
+        return $fragments;
+    }
 );
 
 /**
@@ -41,22 +51,22 @@ add_filter(
  * its own form since it has variations).
  */
 add_filter(
-	'woocommerce_loop_add_to_cart_args',
-	function ( $args, $product ) {
-		if ( $product->is_type( 'simple' ) && $product->is_purchasable() ) {
-			$args['class'] = implode(
-				' ',
-				array_filter(
-					array(
-						isset( $args['class'] ) ? $args['class'] : '',
-						'ajax_add_to_cart',
-						'add_to_cart_button',
-					)
-				)
-			);
-		}
-		return $args;
-	},
-	10,
-	2
+    'woocommerce_loop_add_to_cart_args',
+    function ( $args, $product ) {
+        if ( $product->is_type( 'simple' ) && $product->is_purchasable() ) {
+            $args['class'] = implode(
+                ' ',
+                array_filter(
+                    array(
+                        isset( $args['class'] ) ? $args['class'] : '',
+                        'ajax_add_to_cart',
+                        'add_to_cart_button',
+                    )
+                )
+            );
+        }
+        return $args;
+    },
+    10,
+    2
 );
