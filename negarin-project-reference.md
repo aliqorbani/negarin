@@ -1,6 +1,6 @@
 # پروژه نگارین — مرجع ساختار فایل‌ها
 
-آخرین بروزرسانی: ۱۳ آگوست ۲۰۲۶ (بر اساس ریپوی گیت‌هاب)
+آخرین بروزرسانی: ۱۳ شهریور ۱۴۰۵ (بر اساس ریپوی گیت‌هاب)
 
 > این فایل مرجع سریع برای پیدا کردن مسیر فایل‌ها و پوشه‌های پروژه است. هر بار که فایل/پوشه‌ای اضافه، حذف یا جابجا شد، این فایل هم باید بروز شود.
 
@@ -38,6 +38,9 @@ negarin/
 │       ├── cart.js
 │       ├── checkout.js
 │       ├── custom-order.js
+│       ├── fragments.js
+│       ├── size-select.js
+│       ├── toast.js
 │       └── otp.js
 │
 ├── inc/
@@ -50,6 +53,7 @@ negarin/
 │   │   ├── enqueue.php
 │   │   ├── image-sizes.php
 │   │   ├── nav-menus.php
+│   │   ├── notices.php
 │   │   ├── otp-guards.php
 │   │   ├── setup.php
 │   │   └── woocommerce.php
@@ -57,16 +61,21 @@ negarin/
 │       ├── AccountMenu.php
 │       ├── AddressBook.php
 │       ├── BlogFields.php
+│       ├── BuildCleaner.php
 │       ├── CheckoutFields.php
 │       ├── CustomOrder.php
 │       ├── FlexibleContent.php
 │       ├── FooterMessage.php
 │       ├── OtpAuth.php
 │       ├── ProductFields.php
+│       ├── ProductSizing.php
+│       ├── QuickSearch.php
 │       ├── Seo.php
 │       ├── ThemeOptions.php
 │       └── Sms/
 │           ├── KavenegarGateway.php
+│           ├── LogGateway.php
+│           ├── MelliPayamakGateway.php
 │           └── SmsGatewayInterface.php
 │
 ├── template-parts/
@@ -74,13 +83,15 @@ negarin/
 │   │   ├── accordion-item.php
 │   │   ├── breadcrumbs.php
 │   │   ├── cart-drawer-count.php
-│   │   ├── custom-order-button.php
 │   │   ├── custom-order-modal.php
 │   │   ├── otp-login-form.php
 │   │   ├── product-gallery.php
 │   │   ├── quantity-stepper.php
 │   │   ├── related-products.php
-│   │   ├── size-guide-modal.php
+│   │   ├── size-chart-modal.php
+│   │   ├── size-select-button.php
+│   │   ├── size-select-modal.php
+│   │   ├── toast-container.php
 │   │   └── toc.php
 │   ├── footer/
 │   │   └── site-footer.php
@@ -118,9 +129,11 @@ negarin/
 
 **نکات ساختاری:**
 - استک: وردپرس + ووکامرس + ACF (acf-json/) + Vite + Tailwind CSS
-- پیامک OTP از طریق درگاه Kavenegar (`inc/services/Sms/KavenegarGateway.php`) پشت یک اینترفیس مشترک (`SmsGatewayInterface.php`)
+- پیامک OTP از طریق درگاه Kavenegar/ملی‌پیامک (`inc/services/Sms/`) پشت یک اینترفیس مشترک (`SmsGatewayInterface.php`)، با `LogGateway` برای تست
 - سیستم Page Builder سفارشی با بخش‌های قابل ترکیب (`template-parts/sections/`) به همراه `FlexibleContent.php`
 - کامپوننت‌های قابل استفاده مجدد در `template-parts/components/`
+- **انتخاب سایز / سفارش شخصی (شهریور ۱۴۰۵):** هر عبا محصول متغیر واقعی ووکامرس با attribute سراسری «سایز» (`pa_size`، اعداد ۳۲..۵۶) است — attribute و ترم‌ها به‌صورت کد در `ProductSizing.php` ساخته می‌شوند، نه دستی از ادمین. صفحه محصول دکمه «انتخاب سایز» را نشان می‌دهد که مودال `size-select-modal.php` را باز می‌کند؛ «راهنمای سایز» (`size-chart-modal.php`) و «سفارش شخصی» (`custom-order-modal.php`) هر دو روی همان مودال stack می‌شوند. سفارش شخصی فقط برای کاربر لاگین‌شده در دسترس است (بدون فیلد نام/شماره مهمان) — کاربر مهمان به `/my-account/?redirect_to=...` هدایت می‌شود و `OtpAuth.php` بعد از ورود دقیقاً به همان صفحه برمی‌گرداند. هر دو مسیر افزودن به سبد از طریق REST مستقیم (`negarin/v1/size-select/add-to-cart` و `negarin/v1/custom-order/add-to-cart`) انجام می‌شود، نه فرم کلاسیک.
+- **Toast (شهریور ۱۴۰۵):** همه‌ی پیام‌های ووکامرس (`wc_add_notice`) به‌جای اشغال بخشی از صفحه، به‌صورت toast نمایش داده می‌شوند — `inc/hooks/notices.php` خروجی‌های پیش‌فرض را حذف و در یک container مخفی (`#negarin-wc-notices`) جمع می‌کند؛ `assets/js/toast.js` آن را می‌خواند و بعد از ۱۰ ثانیه خودش پاک می‌کند.
 
 ---
 

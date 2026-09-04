@@ -11,6 +11,9 @@ export function negarinOtp() {
     loading: false,
     cooldown: 0,
     _timer: null,
+    // Preserved verbatim from the query string so an unrelated login (e.g.
+    // arriving at /my-account/ directly) never picks up a stale redirect.
+    redirectTo: new URLSearchParams(window.location.search).get('redirect_to') || '',
 
     async requestCode() {
       this.error = '';
@@ -39,7 +42,7 @@ export function negarinOtp() {
         const res = await fetch(`${negarinData.restUrl}otp/verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': negarinData.nonce },
-          body: JSON.stringify({ phone: this.phone, code: this.code }),
+          body: JSON.stringify({ phone: this.phone, code: this.code, redirect_to: this.redirectTo }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'کد نامعتبر است');

@@ -18,7 +18,14 @@ if ( ! is_singular( 'product' ) ) {
 }
 
 ?>
-<div id="product-<?php the_ID(); ?>" <?php wc_product_class( '', $product ); ?> x-data="{ customOrderOpen: false, sizeGuideOpen: false, specsOpen: false, careOpen: false }">
+<div
+	id="product-<?php the_ID(); ?>"
+	<?php wc_product_class( '', $product ); ?>
+	x-data="{ sizeSelectOpen: false, sizeChartOpen: false, customOrderOpen: false, specsOpen: false, careOpen: false }"
+	@negarin:open-custom-order="customOrderOpen = true"
+	@negarin:cart-added.window="sizeSelectOpen = false; customOrderOpen = false"
+	x-init="if (new URLSearchParams(location.search).get('open_custom_order') === '1') { sizeSelectOpen = true; customOrderOpen = true }"
+>
 
 	<?php do_action( 'woocommerce_before_single_product' ); ?>
 
@@ -40,21 +47,21 @@ if ( ! is_singular( 'product' ) ) {
 			</div>
 
 			<div class="order-1 md:order-2 grid grid-cols-2 gap-3 mt-2 md:mt-0">
-				<?php if ( $product->is_in_stock() && $product->is_purchasable() ) : ?>
-					<form method="post" action="<?php echo esc_url( $product->get_permalink() ); ?>">
+				<?php if ( ! $product->is_in_stock() || ! $product->is_purchasable() ) : ?>
+					<button type="button" class="btn btn--outline w-full col-span-2 opacity-40 cursor-not-allowed" disabled>
+						<?php esc_html_e( 'ناموجود', 'negarin' ); ?>
+					</button>
+				<?php elseif ( $product instanceof WC_Product_Variable && \Negarin\Services\ProductSizing::is_sized_product( $product ) ) : ?>
+					<?php get_template_part( 'template-parts/components/size-select-button' ); ?>
+				<?php else : ?>
+					<form method="post" action="<?php echo esc_url( $product->get_permalink() ); ?>" class="col-span-2">
 						<input type="hidden" name="add-to-cart" value="<?php echo esc_attr( $product->get_id() ); ?>">
 						<input type="hidden" name="quantity" value="1">
 						<button type="submit" class="btn btn--outline w-full ajax_add_to_cart add_to_cart_button">
 							<?php esc_html_e( 'خرید کالای موجود', 'negarin' ); ?>
 						</button>
 					</form>
-				<?php else : ?>
-					<button type="button" class="btn btn--outline w-full opacity-40 cursor-not-allowed" disabled>
-						<?php esc_html_e( 'ناموجود', 'negarin' ); ?>
-					</button>
 				<?php endif; ?>
-
-				<?php get_template_part( 'template-parts/components/custom-order-button' ); ?>
 			</div>
 
 			<?php if ( $product->is_purchasable() && $product->is_in_stock() ) : ?>

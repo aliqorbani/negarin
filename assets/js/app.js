@@ -8,14 +8,18 @@ import './spa.js';
 import Alpine from 'alpinejs';
 import { negarinOtp } from './otp.js';
 import { negarinCustomOrder } from './custom-order.js';
+import { negarinSizeSelect } from './size-select.js';
 import { negarinSearch } from './search.js';
+import { negarinToastStore } from './toast.js';
 import './ajax-cart.js';
 import './cart.js';
 import './checkout.js';
 import './header-offset.js';
 
 window.Alpine = Alpine;
+Alpine.store('toast', negarinToastStore());
 Alpine.data('negarinOtp', negarinOtp);
 Alpine.data('negarinCustomOrder', negarinCustomOrder);
+Alpine.data('negarinSizeSelect', negarinSizeSelect);
 Alpine.data('negarinSearch', negarinSearch);
 Alpine.start();

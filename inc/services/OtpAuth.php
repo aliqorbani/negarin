@@ -123,8 +123,9 @@ class OtpAuth {
                 'callback'            => array( $this, 'handle_verify' ),
                 'permission_callback' => '__return_true',
                 'args'                => array(
-                    'phone' => array( 'required' => true ),
-                    'code'  => array( 'required' => true ),
+                    'phone'       => array( 'required' => true ),
+                    'code'        => array( 'required' => true ),
+                    'redirect_to' => array( 'required' => false ),
                 ),
             )
         );
@@ -227,11 +228,19 @@ class OtpAuth {
         wp_set_current_user( $user->ID );
         wp_set_auth_cookie( $user->ID, true );
 
+        $default_redirect = wc_get_page_permalink( 'myaccount' ) ?: home_url( '/' );
+        $requested         = (string) $request->get_param( 'redirect_to' );
+
+        // wp_validate_redirect() only accepts the target if it resolves to
+        // this site (falls back to $default_redirect otherwise) — guards
+        // against the redirect_to query param being used as an open redirect.
+        $redirect = $requested ? wp_validate_redirect( $requested, $default_redirect ) : $default_redirect;
+
         return new WP_REST_Response(
             array(
                 'success'  => true,
                 'user_id'  => $user->ID,
-                'redirect' => wc_get_page_permalink( 'myaccount' ) ?: home_url( '/' ),
+                'redirect' => $redirect,
             ),
             200
         );

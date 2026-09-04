@@ -190,6 +190,22 @@ body {
 }
 
 /* ---------------------------------------------------------------------
+ * Size chart (template-parts/components/size-chart-modal.php) — the admin
+ * pastes a raw <table> via the WYSIWYG field's Text tab; give it sensible
+ * default borders since pasted HTML otherwise renders unstyled.
+ * ------------------------------------------------------------------- */
+.negarin-size-chart table {
+  @apply w-full border-collapse text-sm;
+}
+.negarin-size-chart th,
+.negarin-size-chart td {
+  @apply border border-negarin-line px-3 py-2 text-center;
+}
+.negarin-size-chart th {
+  @apply bg-negarin-cream font-normal;
+}
+
+/* ---------------------------------------------------------------------
  * Blog post content
  * ------------------------------------------------------------------- */
 .prose h2,

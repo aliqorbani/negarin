@@ -57,6 +57,7 @@ $negarin_includes = array(
     '/inc/hooks/image-sizes.php',
     '/inc/hooks/otp-guards.php',
     '/inc/hooks/turbo.php',
+    '/inc/hooks/notices.php',
     '/inc/hooks/woocommerce.php',
 );
 $negarin_includes = array_unique( $negarin_includes );
@@ -79,6 +80,7 @@ add_action(
         new \Negarin\Services\OtpAuth();
         new \Negarin\Services\QuickSearch();
         new \Negarin\Services\CustomOrder();
+        new \Negarin\Services\ProductSizing();
         new \Negarin\Services\ProductFields();
         new \Negarin\Services\CheckoutFields();
         new \Negarin\Services\AccountMenu();

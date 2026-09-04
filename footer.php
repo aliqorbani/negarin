@@ -17,6 +17,8 @@ if ( ! $is_bare_login_screen ) :
 endif;
 ?>
 
+<?php get_template_part( 'template-parts/components/toast-container' ); ?>
+
 <?php wp_footer(); ?>
 </body>
 </html>
