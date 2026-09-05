@@ -47,27 +47,40 @@ if ( ! is_ajax() ) {
 
 			</div>
 
-			<div class="order-2 md:sticky md:top-24 bg-negarin-cream p-6 text-right">
-				<h2 class="font-serif text-lg mb-4"><?php esc_html_e( 'فاکتور شما', 'negarin' ); ?></h2>
+			<div class="order-2 md:sticky md:top-24">
+				<div class="bg-negarin-cream p-6 text-right border border-negarin-line">
+					<h2 class="font-serif text-lg mb-4"><?php esc_html_e( 'فاکتور شما', 'negarin' ); ?></h2>
 
-				<div class="flex items-center justify-between text-sm py-2 border-t border-black/10">
-					<span><?php wc_cart_totals_subtotal_html(); ?></span>
-					<span class="opacity-70"><?php esc_html_e( 'قیمت این فاکتور:', 'negarin' ); ?></span>
-				</div>
-				<div class="flex items-center justify-between text-sm py-2 border-t border-black/10">
-					<span><?php wc_cart_totals_order_total_html(); ?></span>
-					<span class="opacity-70"><?php esc_html_e( 'مبلغ قابل پرداخت:', 'negarin' ); ?></span>
+					<div class="flex items-center justify-between text-sm py-2 border-t border-black/10">
+						<span class="opacity-70"><?php esc_html_e( 'قیمت این فاکتور:', 'negarin' ); ?></span>
+						<span><?php wc_cart_totals_subtotal_html(); ?></span>
+					</div>
+					<div class="flex items-center justify-between text-sm py-2 border-t border-black/10">
+						<span class="opacity-70"><?php esc_html_e( 'مبلغ قابل پرداخت:', 'negarin' ); ?></span>
+						<span><?php wc_cart_totals_order_total_html(); ?></span>
+					</div>
+
+					<div class="text-sm bg-white rounded-sm px-4 py-3 my-4 flex items-center gap-2">
+						<span>🎁</span>
+						<span><?php esc_html_e( 'ارسال رو مهمان نگارین هستید :)', 'negarin' ); ?></span>
+					</div>
+
+					<button type="button" x-show="step === 1" class="btn btn--solid w-full" @click="window.jQuery && jQuery(document.body).trigger('update_checkout'); step = 2">
+						<?php esc_html_e( 'تایید و ادامه', 'negarin' ); ?>
+					</button>
+					<!-- Step 2's real submit button is WooCommerce's own #place_order, rendered inside woocommerce_checkout_payment via checkout/payment.php -->
 				</div>
 
-				<div class="text-sm bg-white rounded-sm px-4 py-3 my-4 flex items-center gap-2">
-					<span>🎁</span>
-					<span><?php esc_html_e( 'ارسال رو مهمان نگارین هستید :)', 'negarin' ); ?></span>
-				</div>
-
-				<button type="button" x-show="step === 1" class="btn btn--solid w-full" @click="window.jQuery && jQuery(document.body).trigger('update_checkout'); step = 2">
-					<?php esc_html_e( 'تایید و ادامه', 'negarin' ); ?>
-				</button>
-				<!-- Step 2's real submit button is WooCommerce's own #place_order, rendered inside woocommerce_checkout_payment via checkout/payment.php -->
+				<?php
+				$negarin_terms_page = negarin_option( 'checkout_terms_page' );
+				$negarin_terms_url  = $negarin_terms_page ? get_permalink( $negarin_terms_page ) : '';
+				?>
+				<?php if ( $negarin_terms_url ) : ?>
+					<a href="<?php echo esc_url( $negarin_terms_url ); ?>" class="border border-negarin-line flex items-center justify-center gap-2 px-4 py-3 mt-4 text-sm">
+						<span><?php esc_html_e( 'شرایطی که قبل از ثبت سفارش باید بخوانید', 'negarin' ); ?></span>
+						<span>💌</span>
+					</a>
+				<?php endif; ?>
 			</div>
 
 		</div>
