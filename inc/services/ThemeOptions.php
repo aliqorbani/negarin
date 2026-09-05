@@ -153,6 +153,13 @@ class ThemeOptions {
 						'type'  => 'email',
 					),
 					array(
+						'key'          => 'field_checkout_terms_page',
+						'name'         => 'checkout_terms_page',
+						'label'        => __( 'Order Terms Page', 'negarin' ),
+						'instructions' => __( 'صفحه‌ای که با کلیک روی بج «شرایطی که قبل از ثبت سفارش باید بخوانید» در سبد خرید باز می‌شود.', 'negarin' ),
+						'type'         => 'page_link',
+					),
+					array(
 						'key'          => 'field_socials',
 						'name'         => 'socials',
 						'label'        => __( 'Social Links', 'negarin' ),
