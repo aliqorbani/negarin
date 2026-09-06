@@ -47,6 +47,30 @@ add_filter(
 );
 
 /**
+ * cart.php builds its own complete order-summary sidebar ("فاکتور شما")
+ * instead of WooCommerce's default cart-totals box — but that default box
+ * (heading "Cart totals", coupon form, Total row, "Proceed to Checkout")
+ * is still hooked to woocommerce_cart_collaterals / woocommerce_after_cart
+ * by WooCommerce core, and cart.php still calls those hooks for other
+ * legitimate default behavior (cross-sells, etc.), so it was rendering a
+ * second, unstyled totals box underneath ours. Removing just that one
+ * callback from wherever WooCommerce attaches it (defensive on all three
+ * hooks it might use across versions — removing a callback that was never
+ * actually attached to a given hook is a harmless no-op).
+ */
+add_action(
+    'wp',
+    function () {
+        if ( ! is_cart() ) {
+            return;
+        }
+        remove_action( 'woocommerce_cart_collaterals', 'woocommerce_cart_totals', 10 );
+        remove_action( 'woocommerce_after_cart', 'woocommerce_cart_totals', 10 );
+        remove_action( 'woocommerce_after_cart_table', 'woocommerce_cart_totals', 10 );
+    }
+);
+
+/**
  * Force AJAX add-to-cart on archive/shop loops (single product page keeps
  * its own form since it has variations).
  */

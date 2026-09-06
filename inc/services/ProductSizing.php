@@ -29,236 +29,316 @@ use WP_REST_Response;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+    exit;
 }
 
 class ProductSizing {
 
-	/**
-	 * Attribute slug as passed to wc_create_attribute()/wc_attribute_taxonomy_name() —
-	 * WooCommerce prefixes this to the real taxonomy name `pa_size`.
-	 */
-	public const ATTRIBUTE_SLUG = 'size';
+    /**
+     * Attribute slug as passed to wc_create_attribute()/wc_attribute_taxonomy_name() —
+     * WooCommerce prefixes this to the real taxonomy name `pa_size`.
+     */
+    public const ATTRIBUTE_SLUG = 'size';
 
-	/**
-	 * The store's full standard size run. Sizes not relevant to a given
-	 * product simply aren't added as terms on that product — this is just
-	 * the universe of terms the attribute can ever contain.
-	 */
-	private const STANDARD_SIZES = array( 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56 );
+    /**
+     * WooCommerce refuses to add a variable product to the cart without a
+     * real variation_id — there's no way around that (it's a hard check in
+     * WC_Cart::add_to_cart(), not filterable). A custom order has no actual
+     * size, so it needs its own dedicated, hidden variation to attach the
+     * measurements to. This is that variation's reserved attribute term.
+     * get_size_options() filters it out of the customer-facing button grid;
+     * get_or_create_custom_order_variation() lazily creates the matching
+     * WC_Product_Variation the first time a given product receives a
+     * custom order.
+     */
+    public const CUSTOM_ORDER_TERM_SLUG = 'custom-order';
+    private const CUSTOM_ORDER_TERM_NAME = 'سفارش شخصی';
 
-	public function __construct() {
-		// Priority 0: runs before WC_Post_Types::register_taxonomies() (priority 5),
-		// so a newly-created attribute is registered as a taxonomy this same request.
-		add_action( 'init', array( $this, 'ensure_attribute_exists' ), 0 );
-		// Priority 20: runs after the taxonomy above is registered, so wp_insert_term() works.
-		add_action( 'init', array( $this, 'ensure_terms_exist' ), 20 );
-		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
-	}
+    /**
+     * The store's full standard size run. Sizes not relevant to a given
+     * product simply aren't added as terms on that product — this is just
+     * the universe of terms the attribute can ever contain.
+     */
+    private const STANDARD_SIZES = array( 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56 );
 
-	public static function taxonomy(): string {
-		return wc_attribute_taxonomy_name( self::ATTRIBUTE_SLUG );
-	}
+    public function __construct() {
+        // Priority 0: runs before WC_Post_Types::register_taxonomies() (priority 5),
+        // so a newly-created attribute is registered as a taxonomy this same request.
+        add_action( 'init', array( $this, 'ensure_attribute_exists' ), 0 );
+        // Priority 20: runs after the taxonomy above is registered, so wp_insert_term() works.
+        add_action( 'init', array( $this, 'ensure_terms_exist' ), 20 );
+        add_action( 'rest_api_init', array( $this, 'register_routes' ) );
+    }
 
-	public function ensure_attribute_exists(): void {
-		if ( ! function_exists( 'wc_attribute_taxonomy_name' ) || ! function_exists( 'wc_create_attribute' ) ) {
-			return;
-		}
+    public static function taxonomy(): string {
+        return wc_attribute_taxonomy_name( self::ATTRIBUTE_SLUG );
+    }
 
-		if ( taxonomy_exists( self::taxonomy() ) ) {
-			return;
-		}
+    public function ensure_attribute_exists(): void {
+        if ( ! function_exists( 'wc_attribute_taxonomy_name' ) || ! function_exists( 'wc_create_attribute' ) ) {
+            return;
+        }
 
-		// Guards against wc_attribute_taxonomy_id_by_name() finding a row
-		// that exists in the DB but hasn't been (re)registered as a
-		// taxonomy yet in this request (e.g. right after activation).
-		if ( wc_attribute_taxonomy_id_by_name( self::ATTRIBUTE_SLUG ) ) {
-			return;
-		}
+        if ( taxonomy_exists( self::taxonomy() ) ) {
+            return;
+        }
 
-		wc_create_attribute(
-			array(
-				'name'         => __( 'سایز', 'negarin' ),
-				'slug'         => self::ATTRIBUTE_SLUG,
-				'type'         => 'select',
-				'order_by'     => 'menu_order',
-				'has_archives' => false,
-			)
-		);
-	}
+        // Guards against wc_attribute_taxonomy_id_by_name() finding a row
+        // that exists in the DB but hasn't been (re)registered as a
+        // taxonomy yet in this request (e.g. right after activation).
+        if ( wc_attribute_taxonomy_id_by_name( self::ATTRIBUTE_SLUG ) ) {
+            return;
+        }
 
-	public function ensure_terms_exist(): void {
-		$taxonomy = self::taxonomy();
+        wc_create_attribute(
+            array(
+                'name'         => __( 'سایز', 'negarin' ),
+                'slug'         => self::ATTRIBUTE_SLUG,
+                'type'         => 'select',
+                'order_by'     => 'menu_order',
+                'has_archives' => false,
+            )
+        );
+    }
 
-		if ( ! taxonomy_exists( $taxonomy ) ) {
-			return;
-		}
+    public function ensure_terms_exist(): void {
+        $taxonomy = self::taxonomy();
 
-		foreach ( self::STANDARD_SIZES as $order => $size ) {
-			if ( term_exists( (string) $size, $taxonomy ) ) {
-				continue;
-			}
+        if ( ! taxonomy_exists( $taxonomy ) ) {
+            return;
+        }
 
-			$result = wp_insert_term( (string) $size, $taxonomy );
+        foreach ( self::STANDARD_SIZES as $order => $size ) {
+            if ( term_exists( (string) $size, $taxonomy ) ) {
+                continue;
+            }
 
-			if ( ! is_wp_error( $result ) && isset( $result['term_id'] ) ) {
-				wp_update_term( $result['term_id'], $taxonomy, array( 'menu_order' => $order ) );
-			}
-		}
-	}
+            $result = wp_insert_term( (string) $size, $taxonomy );
 
-	/**
-	 * Whether this product should use the "انتخاب سایز" flow (real
-	 * variations) rather than a plain add-to-cart button.
-	 */
-	public static function is_sized_product( \WC_Product $product ): bool {
-		return $product->is_type( 'variable' ) && self::has_size_attribute( $product );
-	}
+            if ( ! is_wp_error( $result ) && isset( $result['term_id'] ) ) {
+                wp_update_term( $result['term_id'], $taxonomy, array( 'menu_order' => $order ) );
+            }
+        }
 
-	private static function has_size_attribute( \WC_Product $product ): bool {
-		foreach ( $product->get_attributes() as $attribute ) {
-			if ( $attribute instanceof \WC_Product_Attribute && $attribute->get_name() === self::taxonomy() ) {
-				return true;
-			}
-		}
-		return false;
-	}
+        if ( ! term_exists( self::CUSTOM_ORDER_TERM_SLUG, $taxonomy ) ) {
+            wp_insert_term(
+                self::CUSTOM_ORDER_TERM_NAME,
+                $taxonomy,
+                array( 'slug' => self::CUSTOM_ORDER_TERM_SLUG )
+            );
+        }
+    }
 
-	/**
-	 * Everything the size-select modal needs, already resolved server-side:
-	 * every size term the product carries (in store order), whether each
-	 * one currently has an in-stock, purchasable variation, and that
-	 * variation's ID (0 when out of stock — the button is shown, struck
-	 * through, but not selectable, matching the Figma export).
-	 *
-	 * @return array<int, array{term_id:int, slug:string, label:string, variation_id:int, in_stock:bool}>
-	 */
-	public static function get_size_options( \WC_Product_Variable $product ): array {
-		$taxonomy = self::taxonomy();
-		$terms    = wc_get_product_terms( $product->get_id(), $taxonomy, array( 'fields' => 'all' ) );
+    /**
+     * Whether this product should use the "انتخاب سایز" flow (real
+     * variations) rather than a plain add-to-cart button.
+     */
+    public static function is_sized_product( \WC_Product $product ): bool {
+        return $product->is_type( 'variable' ) && self::has_size_attribute( $product );
+    }
 
-		if ( empty( $terms ) ) {
-			return array();
-		}
+    private static function has_size_attribute( \WC_Product $product ): bool {
+        foreach ( $product->get_attributes() as $attribute ) {
+            if ( $attribute instanceof \WC_Product_Attribute && $attribute->get_name() === self::taxonomy() ) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-		usort( $terms, static fn( $a, $b ) => (int) $a->name <=> (int) $b->name );
+    /**
+     * Everything the size-select modal needs, already resolved server-side:
+     * every size term the product carries (in store order), whether each
+     * one currently has an in-stock, purchasable variation, and that
+     * variation's ID (0 when out of stock — the button is shown, struck
+     * through, but not selectable, matching the Figma export).
+     *
+     * @return array<int, array{term_id:int, slug:string, label:string, variation_id:int, in_stock:bool}>
+     */
+    public static function get_size_options( \WC_Product_Variable $product ): array {
+        $taxonomy = self::taxonomy();
+        $terms    = wc_get_product_terms( $product->get_id(), $taxonomy, array( 'fields' => 'all' ) );
 
-		$variations = $product->get_available_variations();
-		// Map "size term slug" -> the first matching in-stock variation.
-		$by_slug = array();
-		foreach ( $variations as $variation ) {
-			$slug = $variation['attributes'][ 'attribute_' . $taxonomy ] ?? '';
-			if ( '' === $slug ) {
-				continue;
-			}
-			// Prefer an in-stock entry if one exists for this slug; otherwise keep the first.
-			if ( ! isset( $by_slug[ $slug ] ) || ( ! $by_slug[ $slug ]['is_in_stock'] && $variation['is_in_stock'] ) ) {
-				$by_slug[ $slug ] = $variation;
-			}
-		}
+        if ( empty( $terms ) ) {
+            return array();
+        }
 
-		$options = array();
-		foreach ( $terms as $term ) {
-			$variation = $by_slug[ $term->slug ] ?? null;
-			$options[] = array(
-				'term_id'      => $term->term_id,
-				'slug'         => $term->slug,
-				'label'        => self::to_persian_digits( $term->name ),
-				'variation_id' => $variation ? (int) $variation['variation_id'] : 0,
-				'in_stock'     => (bool) $variation && (bool) $variation['is_in_stock'],
-			);
-		}
+        $terms = array_filter( $terms, static fn( $term ) => self::CUSTOM_ORDER_TERM_SLUG !== $term->slug );
 
-		return $options;
-	}
+        usort( $terms, static fn( $a, $b ) => (int) $a->name <=> (int) $b->name );
 
-	/**
-	 * Term names are stored as plain "32", "34"... (kept ASCII so slug
-	 * matching against variation attributes stays simple) but the Figma
-	 * export shows Persian-Indic digits on the buttons themselves.
-	 */
-	private static function to_persian_digits( string $value ): string {
-		return strtr(
-			$value,
-			array(
-				'0' => '۰',
-				'1' => '۱',
-				'2' => '۲',
-				'3' => '۳',
-				'4' => '۴',
-				'5' => '۵',
-				'6' => '۶',
-				'7' => '۷',
-				'8' => '۸',
-				'9' => '۹',
-			)
-		);
-	}
+        $variations = $product->get_available_variations();
+        // Map "size term slug" -> the first matching in-stock variation.
+        $by_slug = array();
+        foreach ( $variations as $variation ) {
+            $slug = $variation['attributes'][ 'attribute_' . $taxonomy ] ?? '';
+            if ( '' === $slug ) {
+                continue;
+            }
+            // Prefer an in-stock entry if one exists for this slug; otherwise keep the first.
+            if ( ! isset( $by_slug[ $slug ] ) || ( ! $by_slug[ $slug ]['is_in_stock'] && $variation['is_in_stock'] ) ) {
+                $by_slug[ $slug ] = $variation;
+            }
+        }
 
-	public function register_routes(): void {
-		register_rest_route(
-			'negarin/v1',
-			'/size-select/add-to-cart',
-			array(
-				'methods'             => 'POST',
-				'callback'            => array( $this, 'handle_add_to_cart' ),
-				'permission_callback' => '__return_true',
-				'args'                => array(
-					'product_id'   => array( 'required' => true ),
-					'variation_id' => array( 'required' => true ),
-				),
-			)
-		);
-	}
+        $options = array();
+        foreach ( $terms as $term ) {
+            $variation = $by_slug[ $term->slug ] ?? null;
+            $options[] = array(
+                'term_id'      => $term->term_id,
+                'slug'         => $term->slug,
+                'label'        => self::to_persian_digits( $term->name ),
+                'variation_id' => $variation ? (int) $variation['variation_id'] : 0,
+                'in_stock'     => (bool) $variation && (bool) $variation['is_in_stock'],
+            );
+        }
 
-	public function handle_add_to_cart( WP_REST_Request $request ) {
-		$product_id   = absint( $request->get_param( 'product_id' ) );
-		$variation_id = absint( $request->get_param( 'variation_id' ) );
-		$product      = wc_get_product( $product_id );
+        return $options;
+    }
 
-		if ( ! $product || ! $product->is_type( 'variable' ) ) {
-			return new WP_Error( 'negarin_invalid_product', __( 'محصول یافت نشد.', 'negarin' ), array( 'status' => 404 ) );
-		}
+    /**
+     * Term names are stored as plain "32", "34"... (kept ASCII so slug
+     * matching against variation attributes stays simple) but the Figma
+     * export shows Persian-Indic digits on the buttons themselves.
+     */
+    private static function to_persian_digits( string $value ): string {
+        return strtr(
+            $value,
+            array(
+                '0' => '۰',
+                '1' => '۱',
+                '2' => '۲',
+                '3' => '۳',
+                '4' => '۴',
+                '5' => '۵',
+                '6' => '۶',
+                '7' => '۷',
+                '8' => '۸',
+                '9' => '۹',
+            )
+        );
+    }
 
-		$options = self::get_size_options( $product );
-		$match   = null;
+    /**
+     * The hidden variation Services/CustomOrder.php attaches measurements
+     * to. Created the first time a given product receives a custom order,
+     * then reused — never shown in get_size_options(), never
+     * stock-managed (a custom order is made-to-order, it doesn't draw from
+     * any standard size's stock).
+     */
+    public static function get_or_create_custom_order_variation( \WC_Product_Variable $product ): int {
+        $taxonomy = self::taxonomy();
+        $slug     = self::CUSTOM_ORDER_TERM_SLUG;
 
-		foreach ( $options as $option ) {
-			if ( $option['variation_id'] === $variation_id ) {
-				$match = $option;
-				break;
-			}
-		}
+        foreach ( $product->get_children() as $variation_id ) {
+            $variation = wc_get_product( $variation_id );
+            if ( $variation instanceof \WC_Product_Variation ) {
+                $raw_attributes = $variation->get_attributes(); // Flat ['pa_size' => 'raw-slug'] — NOT the resolved term name get_attribute() (singular) would return.
+                if ( ( $raw_attributes[ $taxonomy ] ?? '' ) === $slug ) {
+                    return $variation_id;
+                }
+            }
+        }
 
-		if ( ! $match || ! $match['in_stock'] ) {
-			return new WP_Error( 'negarin_size_unavailable', __( 'سایز انتخابی موجود نیست، لطفاً سایز دیگری را انتخاب کنید.', 'negarin' ), array( 'status' => 409 ) );
-		}
+        $term = get_term_by( 'slug', $slug, $taxonomy );
 
-		$variation_attributes = array(
-			'attribute_' . self::taxonomy() => $match['slug'],
-		);
+        if ( ! $term ) {
+            return 0; // Shouldn't happen — ensure_terms_exist() provisions this on every load.
+        }
+
+        // Make sure the term is one of this product's declared attribute
+        // values — WooCommerce only accepts a variation attribute value
+        // that's already listed on the parent.
+        $attributes = $product->get_attributes();
+
+        if ( isset( $attributes[ $taxonomy ] ) ) {
+            $attribute = $attributes[ $taxonomy ];
+            $options   = $attribute->get_options();
+
+            if ( ! in_array( $term->term_id, $options, true ) ) {
+                $options[] = $term->term_id;
+                $attribute->set_options( $options );
+                $attributes[ $taxonomy ] = $attribute;
+                $product->set_attributes( $attributes );
+                $product->save();
+            }
+        }
+
+        $variation = new \WC_Product_Variation();
+        $variation->set_parent_id( $product->get_id() );
+        $variation->set_attributes( array( $taxonomy => $slug ) );
+        $variation->set_regular_price( $product->get_price() ?: $product->get_regular_price() );
+        $variation->set_manage_stock( false );
+        $variation->set_stock_status( 'instock' );
+        $variation->set_status( 'publish' );
+
+        return (int) $variation->save();
+    }
+
+    public function register_routes(): void {
+        register_rest_route(
+            'negarin/v1',
+            '/size-select/add-to-cart',
+            array(
+                'methods'             => 'POST',
+                'callback'            => array( $this, 'handle_add_to_cart' ),
+                'permission_callback' => '__return_true',
+                'args'                => array(
+                    'product_id'   => array( 'required' => true ),
+                    'variation_id' => array( 'required' => true ),
+                ),
+            )
+        );
+    }
+
+    public function handle_add_to_cart( WP_REST_Request $request ) {
+        $product_id   = absint( $request->get_param( 'product_id' ) );
+        $variation_id = absint( $request->get_param( 'variation_id' ) );
+        $product      = wc_get_product( $product_id );
+
+        if ( ! $product || ! $product->is_type( 'variable' ) ) {
+            return new WP_Error( 'negarin_invalid_product', __( 'محصول یافت نشد.', 'negarin' ), array( 'status' => 404 ) );
+        }
+
+        $options = self::get_size_options( $product );
+        $match   = null;
+
+        foreach ( $options as $option ) {
+            if ( $option['variation_id'] === $variation_id ) {
+                $match = $option;
+                break;
+            }
+        }
+
+        if ( ! $match || ! $match['in_stock'] ) {
+            return new WP_Error( 'negarin_size_unavailable', __( 'سایز انتخابی موجود نیست، لطفاً سایز دیگری را انتخاب کنید.', 'negarin' ), array( 'status' => 409 ) );
+        }
+
+        $variation_attributes = array(
+            'attribute_' . self::taxonomy() => $match['slug'],
+        );
 
         if ( ! WC()->cart ) {
             wc_load_cart();
         }
 
-		$cart_item_key = WC()->cart->add_to_cart( $product_id, 1, $variation_id, $variation_attributes );
+        $cart_item_key = WC()->cart->add_to_cart( $product_id, 1, $variation_id, $variation_attributes );
 
-		if ( ! $cart_item_key ) {
-			$errors = wc_get_notices( 'error' );
-			wc_clear_notices();
-			$message = $errors ? wp_strip_all_tags( $errors[0]['notice'] ) : __( 'افزودن به سبد خرید با خطا مواجه شد.', 'negarin' );
-			return new WP_Error( 'negarin_add_to_cart_failed', $message, array( 'status' => 400 ) );
-		}
+        if ( ! $cart_item_key ) {
+            $errors = wc_get_notices( 'error' );
+            wc_clear_notices();
+            $message = $errors ? wp_strip_all_tags( $errors[0]['notice'] ) : __( 'افزودن به سبد خرید با خطا مواجه شد.', 'negarin' );
+            return new WP_Error( 'negarin_add_to_cart_failed', $message, array( 'status' => 400 ) );
+        }
 
-		return new WP_REST_Response(
-			array(
-				'success'    => true,
-				'message'    => __( 'به سبد خرید اضافه شد.', 'negarin' ),
-				'cart_count' => WC()->cart->get_cart_contents_count(),
-				'fragments'  => apply_filters( 'woocommerce_add_to_cart_fragments', array() ),
-			),
-			200
-		);
-	}
+        return new WP_REST_Response(
+            array(
+                'success'    => true,
+                'message'    => __( 'به سبد خرید اضافه شد.', 'negarin' ),
+                'cart_count' => WC()->cart->get_cart_contents_count(),
+                'fragments'  => apply_filters( 'woocommerce_add_to_cart_fragments', array() ),
+            ),
+            200
+        );
+    }
 }

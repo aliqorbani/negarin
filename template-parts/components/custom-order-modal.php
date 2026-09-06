@@ -26,15 +26,15 @@ global $product;
 $fields           = CustomOrder::get_measurement_fields();
 $component_state  = wp_json_encode( array( 'productId' => $product->get_id() ) );
 ?>
-<div x-show="customOrderOpen" x-cloak class="fixed inset-0 z-[60] flex items-end md:items-center justify-center">
-	<div class="absolute inset-0 bg-black/50" @click="customOrderOpen = false"></div>
+<div x-show="customOrderOpen" @click.stop x-cloak class="fixed inset-0 z-[60] flex items-end md:items-center justify-center">
+	<div class="absolute inset-0 bg-black/50" @click.stop="customOrderOpen = false;sizeSelectOpen = true" ></div>
 
 	<div
 		x-data="negarinCustomOrder(<?php echo esc_attr( $component_state ); ?>)"
 		class="relative bg-white w-full md:max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl md:rounded-sm p-6 md:p-8 text-right"
 	>
 		<div class="flex items-center justify-between pb-4 border-b border-negarin-line mb-6">
-			<button @click="customOrderOpen = false" aria-label="<?php esc_attr_e( 'بستن', 'negarin' ); ?>" class="text-2xl leading-none order-1">&times;</button>
+			<button @click.stop="customOrderOpen = false;sizeSelectOpen = true" aria-label="<?php esc_attr_e( 'بستن', 'negarin' ); ?>" class="text-2xl leading-none order-1">&times;</button>
 			<h3 class="font-serif text-base md:text-xl order-2"><?php esc_html_e( 'سفارش شخصی', 'negarin' ); ?></h3>
 		</div>
 
