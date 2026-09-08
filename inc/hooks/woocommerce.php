@@ -18,6 +18,23 @@ remove_action( 'woocommerce_sidebar', 'woocommerce_get_sidebar', 10 );
 remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb', 20 );
 //add_action( 'negarin_content_top', 'woocommerce_breadcrumb', 20 );
 
+// The coupon form defaults to the very top of the checkout page (above
+// billing fields even). checkout/review-order.php and cart/cart.php both
+// call wc_get_template('checkout/form-coupon.php') themselves instead,
+// right above the product table, so it reads better next to the items
+// it actually discounts.
+remove_action( 'woocommerce_before_checkout_form', 'woocommerce_checkout_coupon_form', 10 );
+
+/**
+ * Per the Figma flow (Checkout → Payment Select are separate frames), the
+ * product table is never repeated on checkout — only on the cart page.
+ * The "فاکتور شما" sidebar's running total is checkout's only summary, so
+ * step 2 (see woocommerce/checkout/form-checkout.php) is purely payment
+ * -method selection, matching the "Payment Select" frame exactly — this
+ * removes the item table WooCommerce would otherwise render above it.
+ */
+remove_action( 'woocommerce_checkout_order_review', 'woocommerce_order_review', 10 );
+
 // Ensure archive/shop grid uses our column count via a filter instead of a shortcode attribute.
 add_filter(
     'loop_shop_columns',
@@ -67,6 +84,18 @@ add_action(
         remove_action( 'woocommerce_cart_collaterals', 'woocommerce_cart_totals', 10 );
         remove_action( 'woocommerce_after_cart', 'woocommerce_cart_totals', 10 );
         remove_action( 'woocommerce_after_cart_table', 'woocommerce_cart_totals', 10 );
+    }
+);
+
+add_filter(
+    'woocommerce_update_order_review_fragments',
+    function ( $fragments ) {
+        ob_start();
+        echo '<div id="negarin-order-totals">';
+        get_template_part( 'template-parts/components/order-totals-rows' );
+        echo '</div>';
+        $fragments['#negarin-order-totals'] = ob_get_clean();
+        return $fragments;
     }
 );
 
