@@ -27,9 +27,6 @@ if ( ! is_ajax() ) {
 ?>
 
     <div class="container max-w-7xl mx-auto px-4 pt-8">
-        <?php wc_get_template( 'checkout/form-coupon.php' ); ?>
-    </div>
-
     <form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data" x-data="{ step: 1 }">
 
         <?php if ( $checkout->get_checkout_fields() ) : ?>
@@ -52,8 +49,8 @@ if ( ! is_ajax() ) {
                 </div>
 
                 <div class="order-2 md:sticky md:top-24">
-                    <div class="bg-negarin-cream p-6 text-right border border-negarin-line">
-                        <h2 class="font-serif text-lg mb-4"><?php esc_html_e( 'فاکتور شما', 'negarin' ); ?></h2>
+                    <div class="bg-white p-4 text-right border border-negarin-line">
+                        <h2 class="font-serif text-lg mb-4 mt-0.5"><?php esc_html_e( 'فاکتور شما', 'negarin' ); ?></h2>
 
                         <div id="negarin-order-totals">
                             <?php get_template_part( 'template-parts/components/order-totals-rows' ); ?>
@@ -63,6 +60,8 @@ if ( ! is_ajax() ) {
                             <span>🎁</span>
                             <span><?php esc_html_e( 'ارسال رو مهمان نگارین هستید :)', 'negarin' ); ?></span>
                         </div>
+
+                        <?php wc_get_template( 'checkout/form-coupon.php' ); ?>
 
                         <button type="button" x-show="step === 1" class="btn btn--solid w-full" @click="window.jQuery && jQuery(document.body).trigger('update_checkout'); step = 2">
                             <?php esc_html_e( 'تایید و ادامه', 'negarin' ); ?>

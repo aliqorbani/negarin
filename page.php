@@ -27,7 +27,7 @@ get_header();
                 </h1>
             <?php endif; ?>
 
-            <div class="prose max-w-none leading-8">
+            <div class="prose max-w-none leading-8 prose-a:no-underline">
                 <?php the_content(); ?>
             </div>
 

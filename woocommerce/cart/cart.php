@@ -29,28 +29,11 @@ do_action( 'woocommerce_before_cart' );
                 <?php do_action( 'woocommerce_before_cart_table' ); ?>
 
                 <div class="order-1">
-                    <?php if ( wc_coupons_enabled() ) : ?>
-                        <div x-data="{ couponOpen: false }" class="mb-4 text-right">
-                            <button type="button" class="flex items-center justify-between w-full text-sm py-2" @click="couponOpen = !couponOpen">
-                                <span><?php esc_html_e( 'اضافه کردن کوپن‌های تخفیف', 'negarin' ); ?></span>
-                                <span x-text="couponOpen ? '−' : '+'" class="text-lg leading-none"></span>
-                            </button>
-                            <div class="coupon flex gap-2 mt-2" x-show="couponOpen" x-cloak>
-                                <label for="coupon_code" class="sr-only"><?php esc_html_e( 'کد تخفیف', 'negarin' ); ?></label>
-                                <input type="text" name="coupon_code" id="coupon_code" value="" class="flex-1 border border-negarin-line rounded-sm px-3 py-2 text-sm" placeholder="<?php esc_attr_e( 'کد را وارد کنید', 'negarin' ); ?>" />
-                                <button type="submit" class="btn btn--outline px-5" name="apply_coupon" value="<?php esc_attr_e( 'اعمال کردن', 'negarin' ); ?>">
-                                    <?php esc_html_e( 'اعمال کردن', 'negarin' ); ?>
-                                </button>
-                                <?php do_action( 'woocommerce_cart_coupon' ); ?>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <div class="overflow-x-auto border border-negarin-line">
-                        <table class="w-full text-sm text-right">
+                    <div class="overflow-x-auto border border-negarin-line p-5 pb-0">
+                        <table class="w-full text-sm text-right mt-0 mb-0">
                             <thead>
                             <tr class="bg-[#f0f1f2] text-xs">
-                                <th class="py-3 px-3 font-normal"><?php esc_html_e( 'محصول', 'negarin' ); ?></th>
+                                <th class="py-3 px-3 font-normal w-full"><?php esc_html_e( 'محصول', 'negarin' ); ?></th>
                                 <th class="py-3 px-3 font-normal"><?php esc_html_e( 'تعداد', 'negarin' ); ?></th>
                                 <th class="py-3 px-3 font-normal"><?php esc_html_e( 'قیمت تک', 'negarin' ); ?></th>
                                 <th class="py-3 px-3 font-normal"></th>
@@ -67,20 +50,20 @@ do_action( 'woocommerce_before_cart' );
                                 }
                                 ?>
                                 <tr class="border-b border-black/5">
-                                    <td class="py-4 px-3">
-                                        <div class="flex items-center gap-3">
+                                    <td class="align-middle mt-4 mb-4">
+                                        <div class="flex justify-start items-center gap-3">
                                             <?php if ( $permalink ) : ?>
-                                                <a href="<?php echo esc_url( $permalink ); ?>" class="shrink-0 w-16 h-20 block overflow-hidden">
-                                                    <?php echo $product->get_image( 'negarin-grid-3', array( 'class' => 'w-full h-full object-cover' ) ); // phpcs:ignore ?>
+                                                <a href="<?php echo esc_url( $permalink ); ?>" class="shrink-0 w-17 h-32.5 block overflow-hidden">
+                                                    <?php echo $product->get_image( 'thumbnail', array( 'class' => 'w-full h-full object-cover' ) ); // phpcs:ignore ?>
                                                 </a>
                                             <?php endif; ?>
-                                            <div>
+                                            <div class="flex flex-col">
                                                 <a href="<?php echo esc_url( $permalink ); ?>" class="block"><?php echo wp_kses_post( $product->get_name() ); ?></a>
                                                 <?php echo wc_get_formatted_cart_item_data( $cart_item ); // phpcs:ignore ?>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="py-4 px-3">
+                                    <td class="align-middle">
                                         <?php
                                         if ( $product->is_sold_individually() ) {
                                             echo '1';
@@ -97,10 +80,10 @@ do_action( 'woocommerce_before_cart' );
                                         }
                                         ?>
                                     </td>
-                                    <td class="py-4 px-3 whitespace-nowrap">
+                                    <td class="align-middle whitespace-nowrap">
                                         <?php echo apply_filters( 'woocommerce_cart_item_price', WC()->cart->get_product_price( $product ), $cart_item, $cart_item_key ); // phpcs:ignore ?>
                                     </td>
-                                    <td class="py-4 px-3">
+                                    <td class="align-middle">
                                         <?php
                                         echo apply_filters( // phpcs:ignore
                                                 'woocommerce_cart_item_remove_link',
@@ -129,8 +112,8 @@ do_action( 'woocommerce_before_cart' );
                 </div>
 
                 <div class="order-2 md:sticky md:top-24">
-                    <div class="bg-negarin-cream p-6 text-right border border-negarin-line">
-                        <h2 class="font-serif text-lg mb-4"><?php esc_html_e( 'فاکتور شما', 'negarin' ); ?></h2>
+                    <div class="bg-white p-4 text-right border border-negarin-line">
+                        <h2 class="font-medium font-serif mb-4 mt-0.5 pr-2 text-base"><?php esc_html_e( 'فاکتور شما', 'negarin' ); ?></h2>
 
                         <?php get_template_part( 'template-parts/components/order-totals-rows' ); ?>
 
@@ -138,8 +121,26 @@ do_action( 'woocommerce_before_cart' );
                             <span>🎁</span>
                             <span><?php esc_html_e( 'ارسال رو مهمان نگارین هستید :)', 'negarin' ); ?></span>
                         </div>
+                        <?php if ( wc_coupons_enabled() ) : ?>
+                            <div x-data="{ couponOpen: false }" class="mb-4 text-right">
+                                <button type="button" class="flex items-center justify-between w-full text-sm py-2" @click="couponOpen = !couponOpen">
+                                    <span><?php esc_html_e( 'اضافه کردن کوپن‌های تخفیف', 'negarin' ); ?></span>
+                                    <span x-text="couponOpen ? '−' : '+'" class="text-lg leading-none"></span>
+                                </button>
+                                <div class="coupon flex gap-2 mt-2" x-show="couponOpen" x-cloak>
+                                    <label for="coupon_code" class="sr-only"><?php esc_html_e( 'کد تخفیف', 'negarin' ); ?></label>
+                                    <input type="text" name="coupon_code" id="coupon_code" value="" class="flex-1 border border-negarin-line rounded-sm px-3 py-2 text-sm" placeholder="<?php esc_attr_e( 'کد را وارد کنید', 'negarin' ); ?>" />
+                                    <button type="submit" class="btn btn--outline px-5" name="apply_coupon" value="<?php esc_attr_e( 'اعمال کردن', 'negarin' ); ?>">
+                                        <?php esc_html_e( 'اعمال', 'negarin' ); ?>
+                                    </button>
+                                    <?php do_action( 'woocommerce_cart_coupon' ); ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
 
-                        <a href="<?php echo esc_url( wc_get_checkout_url() ); ?>" class="btn btn--solid w-full">
+                        <?php //wc_get_template( 'checkout/form-coupon.php' ); ?>
+
+                        <a href="<?php echo esc_url( wc_get_checkout_url() ); ?>" class="btn btn--solid w-full hover:text-white">
                             <?php esc_html_e( 'تایید و ادامه', 'negarin' ); ?>
                         </a>
                     </div>

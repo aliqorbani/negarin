@@ -47,7 +47,7 @@ body {
     @apply font-sans text-negarin-ink antialiased;
   }
   a{
-    @apply text-negarin-ink hover:text-negarin-red transition-colors;
+    @apply text-negarin-ink hover:text-negarin-red transition-colors no-underline;
   }
   [x-cloak] {
     display: none !important;
