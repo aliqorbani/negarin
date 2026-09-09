@@ -1,610 +1,266 @@
-diff --git a/.gitignore b/.gitignore
-index dfd6741..6e4591c 100644
---- a/.gitignore
-+++ b/.gitignore
-@@ -1,4 +1,5 @@
- node_modules/
- assets/build/
- .DS_Store
--*.log
-\ No newline at end of file
-+*.log
-+changes.diff
-\ No newline at end of file
+diff --git a/assets/js/cart.js b/assets/js/cart.js
+index 2a8a3b0..e3ca75e 100644
+--- a/assets/js/cart.js
++++ b/assets/js/cart.js
+@@ -1,15 +1,76 @@
+ /**
+- * The classic WooCommerce cart only recalculates totals when the
+- * `update_cart` submit button is clicked. Our quantity-stepper component
+- * only touches the underlying <input>, so this listens for its `change`
+- * event and clicks that (visually hidden, see assets/css/app.css) button
+- * for the shopper — no custom AJAX cart-math reimplementation needed.
++ * AJAX-ifies the cart-page quantity stepper (template-parts/components/
++ * quantity-stepper.php). The stepper's +/- buttons only touch a hidden
++ * <input class="negarin-qty-input"> and dispatch a `change` event on it —
++ * this used to just click the classic cart's hidden `update_cart` submit
++ * button, which triggers a normal form POST and reloads the whole page on
++ * every single change.
++ *
++ * A shopper can hit +/- (or type a number directly) several times before
++ * settling on a value, so each change is debounced per cart-item-key: only
++ * the value left standing after DEBOUNCE_MS actually goes out over the
++ * wire. The confirm toast also uses a short duration (CART_TOAST_DURATION)
++ * instead of the default 10s, so a follow-up change doesn't leave a pile of
++ * "بروزرسانی شد" toasts stacked on screen — see Services/CartAjax.php for
++ * the endpoint this calls.
+  */
++import { applyFragments } from './fragments.js';
++
++const DEBOUNCE_MS = 500;
++const CART_TOAST_DURATION = 3000;
++
++const pendingTimers = new Map();
++
++function cartItemKeyFromInput(input) {
++  const match = input.name?.match(/^cart\[([^\]]+)\]\[qty\]$/);
++  return match ? match[1] : null;
++}
++
++async function updateQuantity(cartItemKey, input, stepper) {
++  const quantity = Math.max(1, parseInt(input.value, 10) || 1);
++  stepper?.classList.add('opacity-50', 'pointer-events-none');
++
++  try {
++    const res = await fetch(`${negarinData.restUrl}cart/update-item`, {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': negarinData.nonce },
++      body: JSON.stringify({ cart_item_key: cartItemKey, quantity }),
++    });
++    const data = await res.json();
++
++    if (!res.ok) {
++      // Nothing changed server-side (bad cart_item_key / invalid quantity) — no fragments to apply.
++      window.negarinToast(data.message || 'بروزرسانی سبد خرید با خطا مواجه شد.', 'error');
++      return;
++    }
++
++    // The quantity was still committed even when success is false (e.g. it
++    // exceeds available stock — WooCommerce flags that with a notice rather
++    // than reverting it), so the sidebar/mini-cart must stay in sync either way.
++    applyFragments(data.fragments);
++    window.negarinToast(data.message, data.success ? 'success' : 'error', data.success ? CART_TOAST_DURATION : undefined);
++  } catch (e) {
++    window.negarinToast('ارتباط با سرور برقرار نشد.', 'error');
++  } finally {
++    stepper?.classList.remove('opacity-50', 'pointer-events-none');
++  }
++}
++
+ document.addEventListener('change', (event) => {
+   if (!event.target.classList?.contains('negarin-qty-input')) return;
+
+-  const form = event.target.closest('form.woocommerce-cart-form');
+-  const updateButton = form?.querySelector('[name="update_cart"]');
+-  updateButton?.removeAttribute('disabled');
+-  updateButton?.click();
++  const input = event.target;
++  const cartItemKey = cartItemKeyFromInput(input);
++  if (!cartItemKey) return;
++
++  const stepper = input.closest('.negarin-qty-stepper');
++
++  clearTimeout(pendingTimers.get(cartItemKey));
++  pendingTimers.set(
++    cartItemKey,
++    setTimeout(() => {
++      pendingTimers.delete(cartItemKey);
++      updateQuantity(cartItemKey, input, stepper);
++    }, DEBOUNCE_MS)
++  );
+ });
+diff --git a/functions.php b/functions.php
+index 5841310..74962c7 100644
+--- a/functions.php
++++ b/functions.php
+@@ -81,6 +81,7 @@ add_action(
+         new \Negarin\Services\QuickSearch();
+         new \Negarin\Services\CustomOrder();
+         new \Negarin\Services\ProductSizing();
++        new \Negarin\Services\CartAjax();
+         new \Negarin\Services\ProductFields();
+         new \Negarin\Services\CheckoutFields();
+         new \Negarin\Services\AccountMenu();
 diff --git a/inc/hooks/woocommerce.php b/inc/hooks/woocommerce.php
-index 52cb490..f51bd69 100644
+index e888b30..7ef1caf 100644
 --- a/inc/hooks/woocommerce.php
 +++ b/inc/hooks/woocommerce.php
-@@ -18,6 +18,13 @@ remove_action( 'woocommerce_sidebar', 'woocommerce_get_sidebar', 10 );
- remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb', 20 );
- //add_action( 'negarin_content_top', 'woocommerce_breadcrumb', 20 );
- 
-+// The coupon form defaults to the very top of the checkout page (above
-+// billing fields even). checkout/review-order.php and cart/cart.php both
-+// call wc_get_template('checkout/form-coupon.php') themselves instead,
-+// right above the product table, so it reads better next to the items
-+// it actually discounts.
-+remove_action( 'woocommerce_before_checkout_form', 'woocommerce_checkout_coupon_form', 10 );
-+
- // Ensure archive/shop grid uses our column count via a filter instead of a shortcode attribute.
- add_filter(
-     'loop_shop_columns',
-@@ -70,6 +77,18 @@ add_action(
+@@ -87,14 +87,40 @@ add_action(
      }
  );
- 
-+add_filter(
-+    'woocommerce_update_order_review_fragments',
-+    function ( $fragments ) {
-+        ob_start();
-+        echo '<div id="negarin-order-totals">';
-+        get_template_part( 'template-parts/components/order-totals-rows' );
-+        echo '</div>';
-+        $fragments['#negarin-order-totals'] = ob_get_clean();
+
++/**
++ * Renders the "فاکتور شما" sidebar rows wrapped in the `#negarin-order-totals`
++ * container both cart.php and form-checkout.php render on initial page
++ * load, so any AJAX flow that touches the cart can swap it in via
++ * fragments.js's `outerHTML` replacement.
++ */
++function negarin_render_order_totals_fragment(): string {
++    ob_start();
++    echo '<div id="negarin-order-totals">';
++    get_template_part( 'template-parts/components/order-totals-rows' );
++    echo '</div>';
++    return ob_get_clean();
++}
++
+ add_filter(
+     'woocommerce_update_order_review_fragments',
+     function ( $fragments ) {
+-        ob_start();
+-        echo '<div id="negarin-order-totals">';
+-        get_template_part( 'template-parts/components/order-totals-rows' );
+-        echo '</div>';
+-        $fragments['#negarin-order-totals'] = ob_get_clean();
++        $fragments['#negarin-order-totals'] = negarin_render_order_totals_fragment();
 +        return $fragments;
 +    }
 +);
 +
- /**
-  * Force AJAX add-to-cart on archive/shop loops (single product page keeps
-  * its own form since it has variations).
-diff --git a/template-parts/components/order-totals-rows.php b/template-parts/components/order-totals-rows.php
++/**
++ * Same fragment, but wired into `woocommerce_add_to_cart_fragments` too —
++ * this is the filter native AJAX add-to-cart, the size-select/custom-order
++ * REST endpoints, and the cart-page quantity-update REST endpoint
++ * (Services/CartAjax.php) all read from, and none of those trigger
++ * `woocommerce_update_order_review_fragments` (that one's checkout-only,
++ * fired by WooCommerce core's own `update_checkout` jQuery event).
++ */
++add_filter(
++    'woocommerce_add_to_cart_fragments',
++    function ( $fragments ) {
++        $fragments['#negarin-order-totals'] = negarin_render_order_totals_fragment();
+         return $fragments;
+     }
+ );
+diff --git a/inc/services/CartAjax.php b/inc/services/CartAjax.php
 new file mode 100644
-index 0000000..9b8c618
+index 0000000..9ba6a95
 --- /dev/null
-+++ b/template-parts/components/order-totals-rows.php
-@@ -0,0 +1,65 @@
++++ b/inc/services/CartAjax.php
+@@ -0,0 +1,93 @@
 +<?php
 +/**
-+ * The rows inside the "فاکتور شما" box — included by both cart/cart.php
-+ * and checkout/form-checkout.php so there's exactly one totals
-+ * implementation to keep in sync. Mirrors the same conditional rows
-+ * WooCommerce's default checkout/review-order.php <tfoot> shows
-+ * (coupon discount, shipping, fees, tax) — just styled into this sidebar
-+ * instead of living in its own separate box.
++ * AJAX-ifies quantity changes on the cart page.
++ *
++ * The classic cart form (woocommerce/cart/cart.php) only recalculates
++ * totals when its hidden `update_cart` submit button fires — a full,
++ * page-reloading POST. assets/js/cart.js debounces the quantity
++ * stepper's `change` event and calls this REST route instead, so a
++ * shopper clicking +/- several times in a row (or typing a number
++ * directly) never triggers more than one request, and never a page
++ * reload.
++ *
++ * Mirrors WC_Form_Handler::update_cart_action() (WC()->cart->set_quantity()
++ * followed by the same stock/backorder validation the classic cart page
++ * runs via the `woocommerce_check_cart_items` action on every load) —
++ * just returned as JSON instead of a redirect.
++ *
++ * A quantity that exceeds available stock is *not* treated as a request
++ * failure: WooCommerce itself doesn't revert the quantity in that case,
++ * only flags it with a notice, so the response still comes back 200 with
++ * fresh fragments and `success: false` — the sidebar stays in sync with
++ * whatever actually landed in the cart, and assets/js/cart.js toasts the
++ * notice as an error either way.
 + *
 + * @package Negarin
 + */
 +
++namespace Negarin\Services;
++
++use WP_REST_Request;
++use WP_REST_Response;
++use WP_Error;
++
 +if ( ! defined( 'ABSPATH' ) ) {
-+	exit;
++    exit;
 +}
 +
-+if ( ! WC()->cart ) {
-+	return;
++class CartAjax {
++
++    public function __construct() {
++        add_action( 'rest_api_init', array( $this, 'register_routes' ) );
++    }
++
++    public function register_routes(): void {
++        register_rest_route(
++            'negarin/v1',
++            '/cart/update-item',
++            array(
++                'methods'             => 'POST',
++                'callback'            => array( $this, 'handle_update_item' ),
++                'permission_callback' => '__return_true', // Same as add-to-cart: cart state lives in the WC session, not behind a capability check.
++                'args'                => array(
++                    'cart_item_key' => array( 'required' => true ),
++                    'quantity'      => array( 'required' => true ),
++                ),
++            )
++        );
++    }
++
++    public function handle_update_item( WP_REST_Request $request ) {
++        if ( ! WC()->cart ) {
++            wc_load_cart();
++        }
++
++        $cart_item_key = sanitize_text_field( (string) $request->get_param( 'cart_item_key' ) );
++        $quantity      = absint( $request->get_param( 'quantity' ) );
++
++        if ( ! WC()->cart->get_cart_item( $cart_item_key ) ) {
++            return new WP_Error( 'negarin_invalid_cart_item', __( 'این کالا در سبد خرید یافت نشد.', 'negarin' ), array( 'status' => 404 ) );
++        }
++
++        if ( $quantity < 1 ) {
++            return new WP_Error( 'negarin_invalid_quantity', __( 'تعداد وارد شده نامعتبر است.', 'negarin' ), array( 'status' => 422 ) );
++        }
++
++        WC()->cart->set_quantity( $cart_item_key, $quantity, true );
++        WC()->cart->check_cart_items(); // Stock/backorder validation — set_quantity() alone doesn't run it.
++
++        $errors = wc_get_notices( 'error' );
++
++        return new WP_REST_Response(
++            array(
++                'success'   => empty( $errors ),
++                // Fragments (mini-cart, cart count, order totals, and the
++                // hidden notices container this same call just populated)
++                // stay in sync with the cart either way — see class docblock.
++                'message'   => $errors ? wp_strip_all_tags( $errors[0]['notice'] ) : __( 'سبد خرید بروزرسانی شد.', 'negarin' ),
++                'fragments' => apply_filters( 'woocommerce_add_to_cart_fragments', array() ),
++            ),
++            200
++        );
++    }
 +}
-+?>
-+<div class="flex items-center justify-between text-sm py-2 border-t border-black/10">
-+	<span class="opacity-70"><?php esc_html_e( 'قیمت این فاکتور:', 'negarin' ); ?></span>
-+	<span><?php wc_cart_totals_subtotal_html(); ?></span>
-+</div>
-+
-+<?php foreach ( WC()->cart->get_coupons() as $code => $coupon ) : ?>
-+	<div class="flex items-center justify-between text-sm py-2 border-t border-black/10">
-+		<span class="opacity-70"><?php wc_cart_totals_coupon_label( $coupon ); ?></span>
-+		<span><?php wc_cart_totals_coupon_html( $coupon ); ?></span>
-+	</div>
-+<?php endforeach; ?>
-+
-+<?php if ( WC()->cart->needs_shipping() && WC()->cart->show_shipping() ) : ?>
-+	<div class="text-sm py-2 border-t border-black/10">
-+		<?php wc_cart_totals_shipping_html(); ?>
-+	</div>
-+<?php endif; ?>
-+
-+<?php foreach ( WC()->cart->get_fees() as $fee ) : ?>
-+	<div class="flex items-center justify-between text-sm py-2 border-t border-black/10">
-+		<span class="opacity-70"><?php echo esc_html( $fee->name ); ?></span>
-+		<span><?php wc_cart_totals_fee_html( $fee ); ?></span>
-+	</div>
-+<?php endforeach; ?>
-+
-+<?php if ( wc_tax_enabled() && ! WC()->cart->display_prices_including_tax() ) : ?>
-+	<?php if ( 'itemized' === get_option( 'woocommerce_tax_total_display' ) ) : ?>
-+		<?php foreach ( WC()->cart->get_tax_totals() as $code => $tax ) : // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited ?>
-+			<div class="flex items-center justify-between text-sm py-2 border-t border-black/10">
-+				<span class="opacity-70"><?php echo esc_html( $tax->label ); ?></span>
-+				<span><?php echo wp_kses_post( $tax->formatted_amount ); ?></span>
-+			</div>
-+		<?php endforeach; ?>
-+	<?php else : ?>
-+		<div class="flex items-center justify-between text-sm py-2 border-t border-black/10">
-+			<span class="opacity-70"><?php echo esc_html( WC()->countries->tax_or_vat() ); ?></span>
-+			<span><?php wc_cart_totals_taxes_total_html(); ?></span>
-+		</div>
-+	<?php endif; ?>
-+<?php endif; ?>
-+
-+<div class="flex items-center justify-between text-sm py-2 border-t border-black/10">
-+	<span class="opacity-70"><?php esc_html_e( 'مبلغ قابل پرداخت:', 'negarin' ); ?></span>
-+	<span><?php wc_cart_totals_order_total_html(); ?></span>
-+</div>
 diff --git a/woocommerce/cart/cart.php b/woocommerce/cart/cart.php
-index 6ade2d9..7068470 100644
+index 0837790..6879dbd 100644
 --- a/woocommerce/cart/cart.php
 +++ b/woocommerce/cart/cart.php
-@@ -28,99 +28,111 @@ do_action( 'woocommerce_before_cart' );
- 		<form class="woocommerce-cart-form grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8 items-start" method="post" action="<?php echo esc_url( wc_get_cart_url() ); ?>">
- 			<?php do_action( 'woocommerce_before_cart_table' ); ?>
- 
--			<div class="order-1 overflow-x-auto border border-negarin-line">
--				<table class="w-full text-sm text-right">
--					<thead>
--						<tr class="bg-[#f0f1f2] text-xs">
--							<th class="py-3 px-3 font-normal"><?php esc_html_e( 'محصول', 'negarin' ); ?></th>
--							<th class="py-3 px-3 font-normal"><?php esc_html_e( 'تعداد', 'negarin' ); ?></th>
--							<th class="py-3 px-3 font-normal"><?php esc_html_e( 'قیمت تک', 'negarin' ); ?></th>
--							<th class="py-3 px-3 font-normal"></th>
--						</tr>
--					</thead>
--					<tbody>
--						<?php
--						foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) :
--							$product   = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
--							$permalink = apply_filters( 'woocommerce_cart_item_permalink', $product->is_visible() ? $product->get_permalink( $cart_item ) : '', $cart_item, $cart_item_key );
--
--							if ( ! $product || ! apply_filters( 'woocommerce_cart_item_visible', true, $cart_item, $cart_item_key ) ) {
--								continue;
--							}
--							?>
--							<tr class="border-b border-black/5">
--								<td class="py-4 px-3">
--									<div class="flex items-center gap-3">
--										<?php if ( $permalink ) : ?>
--											<a href="<?php echo esc_url( $permalink ); ?>" class="shrink-0 w-16 h-20 block overflow-hidden">
--												<?php echo $product->get_image( 'negarin-grid-3', array( 'class' => 'w-full h-full object-cover' ) ); // phpcs:ignore ?>
--											</a>
--										<?php endif; ?>
--										<div>
--											<a href="<?php echo esc_url( $permalink ); ?>" class="block"><?php echo wp_kses_post( $product->get_name() ); ?></a>
--											<?php echo wc_get_formatted_cart_item_data( $cart_item ); // phpcs:ignore ?>
-+			<div class="order-1">
-+				<?php if ( wc_coupons_enabled() ) : ?>
-+					<div x-data="{ couponOpen: false }" class="mb-4 text-right">
-+						<button type="button" class="flex items-center justify-between w-full text-sm py-2" @click="couponOpen = !couponOpen">
-+							<span><?php esc_html_e( 'اضافه کردن کوپن‌های تخفیف', 'negarin' ); ?></span>
-+							<span x-text="couponOpen ? '−' : '+'" class="text-lg leading-none"></span>
-+						</button>
-+						<div class="coupon flex gap-2 mt-2" x-show="couponOpen" x-cloak>
-+							<label for="coupon_code" class="sr-only"><?php esc_html_e( 'کد تخفیف', 'negarin' ); ?></label>
-+							<input type="text" name="coupon_code" id="coupon_code" value="" class="flex-1 border border-negarin-line rounded-sm px-3 py-2 text-sm" placeholder="<?php esc_attr_e( 'کد را وارد کنید', 'negarin' ); ?>" />
-+							<button type="submit" class="btn btn--outline px-5" name="apply_coupon" value="<?php esc_attr_e( 'اعمال کردن', 'negarin' ); ?>">
-+								<?php esc_html_e( 'اعمال کردن', 'negarin' ); ?>
-+							</button>
-+							<?php do_action( 'woocommerce_cart_coupon' ); ?>
-+						</div>
-+					</div>
-+				<?php endif; ?>
-+
-+				<div class="overflow-x-auto border border-negarin-line">
-+					<table class="w-full text-sm text-right">
-+						<thead>
-+							<tr class="bg-[#f0f1f2] text-xs">
-+								<th class="py-3 px-3 font-normal"><?php esc_html_e( 'محصول', 'negarin' ); ?></th>
-+								<th class="py-3 px-3 font-normal"><?php esc_html_e( 'تعداد', 'negarin' ); ?></th>
-+								<th class="py-3 px-3 font-normal"><?php esc_html_e( 'قیمت تک', 'negarin' ); ?></th>
-+								<th class="py-3 px-3 font-normal"></th>
-+							</tr>
-+						</thead>
-+						<tbody>
-+							<?php
-+							foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) :
-+								$product   = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
-+								$permalink = apply_filters( 'woocommerce_cart_item_permalink', $product->is_visible() ? $product->get_permalink( $cart_item ) : '', $cart_item, $cart_item_key );
-+
-+								if ( ! $product || ! apply_filters( 'woocommerce_cart_item_visible', true, $cart_item, $cart_item_key ) ) {
-+									continue;
-+								}
-+								?>
-+								<tr class="border-b border-black/5">
-+									<td class="py-4 px-3">
-+										<div class="flex items-center gap-3">
-+											<?php if ( $permalink ) : ?>
-+												<a href="<?php echo esc_url( $permalink ); ?>" class="shrink-0 w-16 h-20 block overflow-hidden">
-+													<?php echo $product->get_image( 'negarin-grid-3', array( 'class' => 'w-full h-full object-cover' ) ); // phpcs:ignore ?>
-+												</a>
-+											<?php endif; ?>
-+											<div>
-+												<a href="<?php echo esc_url( $permalink ); ?>" class="block"><?php echo wp_kses_post( $product->get_name() ); ?></a>
-+												<?php echo wc_get_formatted_cart_item_data( $cart_item ); // phpcs:ignore ?>
-+											</div>
- 										</div>
--									</div>
--								</td>
--								<td class="py-4 px-3">
--									<?php
--									if ( $product->is_sold_individually() ) {
--										echo '1';
--									} else {
--										get_template_part(
--											'template-parts/components/quantity-stepper',
--											null,
--											array(
--												'product'       => $product,
--												'cart_item_key' => $cart_item_key,
--												'quantity'      => $cart_item['quantity'],
--											)
-+									</td>
-+									<td class="py-4 px-3">
-+										<?php
-+										if ( $product->is_sold_individually() ) {
-+											echo '1';
-+										} else {
-+											get_template_part(
-+												'template-parts/components/quantity-stepper',
-+												null,
-+												array(
-+													'product'       => $product,
-+													'cart_item_key' => $cart_item_key,
-+													'quantity'      => $cart_item['quantity'],
-+												)
-+											);
-+										}
-+										?>
-+									</td>
-+									<td class="py-4 px-3 whitespace-nowrap">
-+										<?php echo apply_filters( 'woocommerce_cart_item_price', WC()->cart->get_product_price( $product ), $cart_item, $cart_item_key ); // phpcs:ignore ?>
-+									</td>
-+									<td class="py-4 px-3">
-+										<?php
-+										echo apply_filters( // phpcs:ignore
-+											'woocommerce_cart_item_remove_link',
-+											sprintf(
-+												'<a href="%s" class="remove text-negarin-red" aria-label="%s" data-product_id="%s" data-cart_item_key="%s">%s</a>',
-+												esc_url( wc_get_cart_remove_url( $cart_item_key ) ),
-+												esc_attr__( 'حذف از سبد خرید', 'negarin' ),
-+												esc_attr( $product->get_id() ),
-+												esc_attr( $cart_item_key ),
-+												'<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M9 6V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6m2 0v13a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10ZM10 10.5v6M14 10.5v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-+											),
-+											$cart_item_key
- 										);
--									}
--									?>
--								</td>
--								<td class="py-4 px-3 whitespace-nowrap">
--									<?php echo apply_filters( 'woocommerce_cart_item_price', WC()->cart->get_product_price( $product ), $cart_item, $cart_item_key ); // phpcs:ignore ?>
--								</td>
--								<td class="py-4 px-3">
--									<?php
--									echo apply_filters( // phpcs:ignore
--										'woocommerce_cart_item_remove_link',
--										sprintf(
--											'<a href="%s" class="remove text-negarin-red" aria-label="%s" data-product_id="%s" data-cart_item_key="%s">%s</a>',
--											esc_url( wc_get_cart_remove_url( $cart_item_key ) ),
--											esc_attr__( 'حذف از سبد خرید', 'negarin' ),
--											esc_attr( $product->get_id() ),
--											esc_attr( $cart_item_key ),
--											'<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M9 6V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6m2 0v13a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10ZM10 10.5v6M14 10.5v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
--										),
--										$cart_item_key
--									);
--									?>
--								</td>
--							</tr>
--						<?php endforeach; ?>
--					</tbody>
--				</table>
--
--				<button type="submit" name="update_cart" value="<?php esc_attr_e( 'بروزرسانی سبد خرید', 'negarin' ); ?>">
--					<?php esc_html_e( 'بروزرسانی سبد خرید', 'negarin' ); ?>
--				</button>
--				<?php wp_nonce_field( 'woocommerce-cart', 'woocommerce-cart-nonce' ); ?>
-+										?>
-+									</td>
-+								</tr>
-+							<?php endforeach; ?>
-+						</tbody>
-+					</table>
-+
-+					<button type="submit" name="update_cart" value="<?php esc_attr_e( 'بروزرسانی سبد خرید', 'negarin' ); ?>">
-+						<?php esc_html_e( 'بروزرسانی سبد خرید', 'negarin' ); ?>
-+					</button>
-+					<?php wp_nonce_field( 'woocommerce-cart', 'woocommerce-cart-nonce' ); ?>
-+				</div>
- 			</div>
- 
- 			<div class="order-2 md:sticky md:top-24">
- 				<div class="bg-negarin-cream p-6 text-right border border-negarin-line">
- 					<h2 class="font-serif text-lg mb-4"><?php esc_html_e( 'فاکتور شما', 'negarin' ); ?></h2>
- 
--					<div class="flex items-center justify-between text-sm py-2 border-t border-black/10">
--						<span class="opacity-70"><?php esc_html_e( 'قیمت این فاکتور:', 'negarin' ); ?></span>
--						<span><?php wc_cart_totals_subtotal_html(); ?></span>
--					</div>
--					<div class="flex items-center justify-between text-sm py-2 border-t border-black/10">
--						<span class="opacity-70"><?php esc_html_e( 'مبلغ قابل پرداخت:', 'negarin' ); ?></span>
--						<span><?php wc_cart_totals_order_total_html(); ?></span>
--					</div>
-+					<?php get_template_part( 'template-parts/components/order-totals-rows' ); ?>
- 
- 					<div class="text-sm bg-white rounded-sm px-4 py-3 my-4 flex items-center gap-2">
- 						<span>🎁</span>
-diff --git a/woocommerce/checkout/form-checkout.php b/woocommerce/checkout/form-checkout.php
-index 8ed610b..979f668 100644
---- a/woocommerce/checkout/form-checkout.php
-+++ b/woocommerce/checkout/form-checkout.php
-@@ -26,6 +26,10 @@ if ( ! is_ajax() ) {
- }
- ?>
- 
-+<div class="container max-w-7xl mx-auto px-4 pt-8">
-+	<?php wc_get_template( 'checkout/form-coupon.php' ); ?>
-+</div>
-+
- <form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data" x-data="{ step: 1 }">
- 
- 	<?php if ( $checkout->get_checkout_fields() ) : ?>
-@@ -51,13 +55,8 @@ if ( ! is_ajax() ) {
- 				<div class="bg-negarin-cream p-6 text-right border border-negarin-line">
- 					<h2 class="font-serif text-lg mb-4"><?php esc_html_e( 'فاکتور شما', 'negarin' ); ?></h2>
- 
--					<div class="flex items-center justify-between text-sm py-2 border-t border-black/10">
--						<span class="opacity-70"><?php esc_html_e( 'قیمت این فاکتور:', 'negarin' ); ?></span>
--						<span><?php wc_cart_totals_subtotal_html(); ?></span>
--					</div>
--					<div class="flex items-center justify-between text-sm py-2 border-t border-black/10">
--						<span class="opacity-70"><?php esc_html_e( 'مبلغ قابل پرداخت:', 'negarin' ); ?></span>
--						<span><?php wc_cart_totals_order_total_html(); ?></span>
-+					<div id="negarin-order-totals">
-+						<?php get_template_part( 'template-parts/components/order-totals-rows' ); ?>
- 					</div>
- 
- 					<div class="text-sm bg-white rounded-sm px-4 py-3 my-4 flex items-center gap-2">
-diff --git a/woocommerce/checkout/form-coupon.php b/woocommerce/checkout/form-coupon.php
-new file mode 100644
-index 0000000..fe77734
---- /dev/null
-+++ b/woocommerce/checkout/form-coupon.php
-@@ -0,0 +1,45 @@
-+<?php
-+/**
-+ * Checkout coupon form. WooCommerce's own checkout.js listens for a submit
-+ * on `form.checkout_coupon` with a `coupon_code` input and `apply_coupon`
-+ * button and handles it over AJAX — none of that is reimplemented here,
-+ * only the open/close interaction and styling (Alpine instead of WC's
-+ * default `.showcoupon` class + jQuery slideToggle).
-+ *
-+ * Previously rendered at the very top of the checkout page (WooCommerce
-+ * hooks this to `woocommerce_before_checkout_form` by default) — moved
-+ * into checkout/review-order.php instead, right above the order table,
-+ * via a `remove_action()` in inc/hooks/woocommerce.php.
-+ *
-+ * @package Negarin
-+ */
-+
-+if ( ! defined( 'ABSPATH' ) ) {
-+	exit;
-+}
-+
-+if ( ! wc_coupons_enabled() ) { // @codingStandardsIgnoreLine.
-+	return;
-+}
-+?>
-+<div x-data="{ couponOpen: false }" class="mb-4 text-right">
-+	<button type="button" class="flex items-center justify-between w-full text-sm py-2" @click="couponOpen = !couponOpen">
-+		<span><?php esc_html_e( 'اضافه کردن کوپن‌های تخفیف', 'negarin' ); ?></span>
-+		<span x-text="couponOpen ? '−' : '+'" class="text-lg leading-none"></span>
-+	</button>
-+
-+	<form class="checkout_coupon woocommerce-form-coupon flex gap-2 mt-2" method="post" x-show="couponOpen" x-cloak>
-+		<label for="coupon_code" class="sr-only"><?php esc_html_e( 'کد تخفیف', 'negarin' ); ?></label>
-+		<input
-+			type="text"
-+			name="coupon_code"
-+			id="coupon_code"
-+			value=""
-+			class="flex-1 border border-negarin-line rounded-sm px-3 py-2 text-sm"
-+			placeholder="<?php esc_attr_e( 'کد را وارد کنید', 'negarin' ); ?>"
-+		/>
-+		<button type="submit" class="btn btn--outline px-5" name="apply_coupon" value="<?php esc_attr_e( 'اعمال کردن', 'negarin' ); ?>">
-+			<?php esc_html_e( 'اعمال کردن', 'negarin' ); ?>
-+		</button>
-+	</form>
-+</div>
-diff --git a/woocommerce/checkout/payment-method.php b/woocommerce/checkout/payment-method.php
-new file mode 100644
-index 0000000..46216ba
---- /dev/null
-+++ b/woocommerce/checkout/payment-method.php
-@@ -0,0 +1,35 @@
-+<?php
-+/**
-+ * A single payment gateway row. Keeps the exact IDs/names/classes
-+ * WooCommerce's checkout.js needs (`payment_method_{id}` input,
-+ * `payment_box payment_method_{id}` fields wrapper, `chosen` state) —
-+ * only the surrounding markup/styling changes.
-+ *
-+ * @package Negarin
-+ * @var WC_Payment_Gateway $gateway
-+ */
-+
-+if ( ! defined( 'ABSPATH' ) ) {
-+	exit;
-+}
-+?>
-+<li class="wc_payment_method payment_method_<?php echo esc_attr( $gateway->id ); ?> border border-negarin-line rounded-sm mb-2 overflow-hidden">
-+	<label for="payment_method_<?php echo esc_attr( $gateway->id ); ?>" class="flex items-center gap-3 px-4 py-3 cursor-pointer">
-+		<input
-+			id="payment_method_<?php echo esc_attr( $gateway->id ); ?>"
-+			type="radio"
-+			class="input-radio"
-+			name="payment_method"
-+			value="<?php echo esc_attr( $gateway->id ); ?>"
-+			<?php checked( $gateway->chosen, true ); ?>
-+			data-order_button_text="<?php echo esc_attr( $gateway->order_button_text ); ?>"
-+		/>
-+		<span class="flex-1"><?php echo $gateway->get_title(); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></span>
-+		<?php echo $gateway->get_icon(); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>
-+	</label>
-+	<?php if ( $gateway->has_fields() || $gateway->get_description() ) : ?>
-+		<div class="payment_box payment_method_<?php echo esc_attr( $gateway->id ); ?> px-4 pb-4 text-sm opacity-80" <?php echo $gateway->chosen ? '' : 'style="display:none;"'; ?>>
-+			<?php $gateway->payment_fields(); ?>
-+		</div>
-+	<?php endif; ?>
-+</li>
-diff --git a/woocommerce/checkout/payment.php b/woocommerce/checkout/payment.php
-new file mode 100644
-index 0000000..5636983
---- /dev/null
-+++ b/woocommerce/checkout/payment.php
-@@ -0,0 +1,76 @@
-+<?php
-+/**
-+ * Checkout payment section override. Keeps every functional element
-+ * WooCommerce's checkout.js and payment gateway plugins depend on exactly
-+ * as-is (the #payment wrapper, .wc_payment_methods list, #place_order
-+ * button with its id/name, the checkout nonce) — only restyled.
-+ *
-+ * @package Negarin
-+ */
-+
-+if ( ! defined( 'ABSPATH' ) ) {
-+	exit;
-+}
-+
-+if ( ! wp_doing_ajax() ) {
-+	do_action( 'woocommerce_review_order_before_payment' );
-+}
-+?>
-+<div id="payment" class="woocommerce-checkout-payment mt-6">
-+	<?php if ( WC()->cart && WC()->cart->needs_payment() ) : ?>
-+		<ul class="wc_payment_methods payment_methods methods" aria-label="<?php esc_attr_e( 'Payment methods', 'woocommerce' ); ?>">
-+			<?php
-+			if ( ! empty( $available_gateways ) ) {
-+				foreach ( $available_gateways as $gateway ) {
-+					wc_get_template( 'checkout/payment-method.php', array( 'gateway' => $gateway ) );
-+				}
-+			} else {
-+				echo '<li>';
-+				wc_print_notice(
-+					apply_filters(
-+						'woocommerce_no_available_payment_methods_message',
-+						WC()->customer->get_billing_country()
-+							? esc_html__( 'متأسفانه در حال حاضر روش پرداختی در دسترس نیست. برای راهنمایی با ما تماس بگیرید.', 'negarin' )
-+							: esc_html__( 'لطفاً مشخصات بالا را تکمیل کنید تا روش‌های پرداخت نمایش داده شود.', 'negarin' )
-+					),
-+					'notice'
-+				);
-+				echo '</li>';
-+			}
-+			?>
-+		</ul>
-+	<?php endif; ?>
-+
-+	<div class="form-row place-order mt-4">
-+		<noscript>
-+			<?php
-+			printf(
-+				/* translators: $1 and $2 opening and closing emphasis tags respectively */
-+				esc_html__( 'چون جاوااسکریپت در مرورگر شما غیرفعال است، لطفاً قبل از ثبت سفارش روی %1$sبروزرسانی مجموع%2$s بزنید.', 'negarin' ),
-+				'<em>',
-+				'</em>'
-+			);
-+			?>
-+			<br/><button type="submit" class="btn btn--outline mt-2" name="woocommerce_checkout_update_totals" value="<?php esc_attr_e( 'بروزرسانی مجموع', 'negarin' ); ?>"><?php esc_html_e( 'بروزرسانی مجموع', 'negarin' ); ?></button>
-+		</noscript>
-+
-+		<?php wc_get_template( 'checkout/terms.php' ); ?>
-+
-+		<?php do_action( 'woocommerce_review_order_before_submit' ); ?>
-+
-+		<?php
-+		echo apply_filters( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-+			'woocommerce_order_button_html',
-+			'<button type="submit" class="btn btn--solid w-full mt-4" name="woocommerce_checkout_place_order" id="place_order" value="' . esc_attr( $order_button_text ) . '" data-value="' . esc_attr( $order_button_text ) . '">' . esc_html( $order_button_text ) . '</button>'
-+		);
-+		?>
-+
-+		<?php do_action( 'woocommerce_review_order_after_submit' ); ?>
-+
-+		<?php wp_nonce_field( 'woocommerce-process_checkout', 'woocommerce-process-checkout-nonce' ); ?>
-+	</div>
-+</div>
-+<?php
-+if ( ! wp_doing_ajax() ) {
-+	do_action( 'woocommerce_review_order_after_payment' );
-+}
-diff --git a/woocommerce/checkout/review-order.php b/woocommerce/checkout/review-order.php
-new file mode 100644
-index 0000000..3beef0b
---- /dev/null
-+++ b/woocommerce/checkout/review-order.php
-@@ -0,0 +1,77 @@
-+<?php
-+/**
-+ * Checkout order-review table override. Matches cart.php's table styling.
-+ *
-+ * Deliberately has NO totals <tfoot> (subtotal/coupon-discount/shipping/
-+ * tax/total) — those all live in the "فاکتور شما" sidebar in
-+ * checkout/form-checkout.php instead, so there's exactly one place on the
-+ * page showing the amount due, not two (see the 2026-09 fix where the
-+ * cart page had this same duplicate-totals problem).
-+ *
-+ * The coupon form isn't here either — it has its own <form> tag, which
-+ * can't be nested inside the outer <form name="checkout"> (browsers
-+ * silently drop nested forms, which would break its AJAX submit handler
-+ * entirely). It's called from form-checkout.php, before that outer form
-+ * opens.
-+ *
-+ * checkout/payment.php renders immediately after this (both are hooked to
-+ * woocommerce_checkout_order_review, priorities 10 and 20 — see
-+ * WooCommerce core's wc-template-hooks.php).
-+ *
-+ * @package Negarin
-+ */
-+
-+if ( ! defined( 'ABSPATH' ) ) {
-+	exit;
-+}
-+?>
-+<div class="overflow-x-auto border border-negarin-line">
-+	<table class="w-full text-sm text-right woocommerce-checkout-review-order-table">
-+		<thead>
-+			<tr class="bg-[#f0f1f2] text-xs">
-+				<th class="py-3 px-3 font-normal"><?php esc_html_e( 'محصول', 'negarin' ); ?></th>
-+				<th class="py-3 px-3 font-normal"><?php esc_html_e( 'تعداد', 'negarin' ); ?></th>
-+				<th class="py-3 px-3 font-normal"><?php esc_html_e( 'قیمت', 'negarin' ); ?></th>
-+			</tr>
-+		</thead>
-+		<tbody>
-+			<?php do_action( 'woocommerce_review_order_before_cart_contents' ); ?>
-+
-+			<?php foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) : ?>
-+				<?php
-+				$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
-+				$visible = apply_filters( 'woocommerce_checkout_cart_item_visible', true, $cart_item, $cart_item_key );
-+
-+				if ( ! $product instanceof WC_Product || ! $product->exists() || $cart_item['quantity'] <= 0 || ! $visible ) {
-+					continue;
-+				}
-+
-+				$permalink = apply_filters( 'woocommerce_cart_item_permalink', $product->is_visible() ? $product->get_permalink( $cart_item ) : '', $cart_item, $cart_item_key );
-+				?>
-+				<tr class="border-b border-black/5 <?php echo esc_attr( apply_filters( 'woocommerce_cart_item_class', 'cart_item', $cart_item, $cart_item_key ) ); ?>">
-+					<td class="py-4 px-3">
-+						<div class="flex items-center gap-3">
-+							<?php if ( $permalink ) : ?>
-+								<a href="<?php echo esc_url( $permalink ); ?>" class="shrink-0 w-14 h-18 block overflow-hidden">
-+									<?php echo $product->get_image( 'negarin-grid-3', array( 'class' => 'w-full h-full object-cover' ) ); // phpcs:ignore ?>
-+								</a>
-+							<?php endif; ?>
-+							<div>
-+								<a href="<?php echo esc_url( $permalink ); ?>" class="block"><?php echo wp_kses_post( apply_filters( 'woocommerce_cart_item_name', $product->get_name(), $cart_item, $cart_item_key ) ); ?></a>
-+								<?php echo wc_get_formatted_cart_item_data( $cart_item ); // phpcs:ignore ?>
-+							</div>
-+						</div>
-+					</td>
-+					<td class="py-4 px-3">
-+						&times; <?php echo esc_html( $cart_item['quantity'] ); ?>
-+					</td>
-+					<td class="py-4 px-3 whitespace-nowrap">
-+						<?php echo apply_filters( 'woocommerce_cart_item_subtotal', WC()->cart->get_product_subtotal( $product, $cart_item['quantity'] ), $cart_item, $cart_item_key ); // phpcs:ignore ?>
-+					</td>
-+				</tr>
-+			<?php endforeach; ?>
-+
-+			<?php do_action( 'woocommerce_review_order_after_cart_contents' ); ?>
-+		</tbody>
-+	</table>
-+</div>
+@@ -115,7 +115,9 @@ do_action( 'woocommerce_before_cart' );
+                     <div class="bg-white p-4 text-right border border-negarin-line">
+                         <h2 class="font-medium font-serif mb-4 mt-0.5 pr-2 text-base"><?php esc_html_e( 'فاکتور شما', 'negarin' ); ?></h2>
+
+-                        <?php get_template_part( 'template-parts/components/order-totals-rows' ); ?>
++                        <div id="negarin-order-totals">
++                            <?php get_template_part( 'template-parts/components/order-totals-rows' ); ?>
++                        </div>
+
+                         <div class="text-sm bg-white rounded-sm px-4 py-3 my-4 flex items-center gap-2">
+                             <span>🎁</span>

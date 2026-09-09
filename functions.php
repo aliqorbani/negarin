@@ -81,6 +81,7 @@ add_action(
         new \Negarin\Services\QuickSearch();
         new \Negarin\Services\CustomOrder();
         new \Negarin\Services\ProductSizing();
+        new \Negarin\Services\CartAjax();
         new \Negarin\Services\ProductFields();
         new \Negarin\Services\CheckoutFields();
         new \Negarin\Services\AccountMenu();

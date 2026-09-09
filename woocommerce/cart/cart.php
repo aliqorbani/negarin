@@ -115,7 +115,9 @@ do_action( 'woocommerce_before_cart' );
                     <div class="bg-white p-4 text-right border border-negarin-line">
                         <h2 class="font-medium font-serif mb-4 mt-0.5 pr-2 text-base"><?php esc_html_e( 'فاکتور شما', 'negarin' ); ?></h2>
 
-                        <?php get_template_part( 'template-parts/components/order-totals-rows' ); ?>
+                        <div id="negarin-order-totals">
+                            <?php get_template_part( 'template-parts/components/order-totals-rows' ); ?>
+                        </div>
 
                         <div class="text-sm bg-white rounded-sm px-4 py-3 my-4 flex items-center gap-2">
                             <span>🎁</span>

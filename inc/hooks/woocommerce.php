@@ -87,14 +87,40 @@ add_action(
     }
 );
 
+/**
+ * Renders the "فاکتور شما" sidebar rows wrapped in the `#negarin-order-totals`
+ * container both cart.php and form-checkout.php render on initial page
+ * load, so any AJAX flow that touches the cart can swap it in via
+ * fragments.js's `outerHTML` replacement.
+ */
+function negarin_render_order_totals_fragment(): string {
+    ob_start();
+    echo '<div id="negarin-order-totals">';
+    get_template_part( 'template-parts/components/order-totals-rows' );
+    echo '</div>';
+    return ob_get_clean();
+}
+
 add_filter(
     'woocommerce_update_order_review_fragments',
     function ( $fragments ) {
-        ob_start();
-        echo '<div id="negarin-order-totals">';
-        get_template_part( 'template-parts/components/order-totals-rows' );
-        echo '</div>';
-        $fragments['#negarin-order-totals'] = ob_get_clean();
+        $fragments['#negarin-order-totals'] = negarin_render_order_totals_fragment();
+        return $fragments;
+    }
+);
+
+/**
+ * Same fragment, but wired into `woocommerce_add_to_cart_fragments` too —
+ * this is the filter native AJAX add-to-cart, the size-select/custom-order
+ * REST endpoints, and the cart-page quantity-update REST endpoint
+ * (Services/CartAjax.php) all read from, and none of those trigger
+ * `woocommerce_update_order_review_fragments` (that one's checkout-only,
+ * fired by WooCommerce core's own `update_checkout` jQuery event).
+ */
+add_filter(
+    'woocommerce_add_to_cart_fragments',
+    function ( $fragments ) {
+        $fragments['#negarin-order-totals'] = negarin_render_order_totals_fragment();
         return $fragments;
     }
 );
