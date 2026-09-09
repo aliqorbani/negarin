@@ -21,10 +21,8 @@ if ( ! is_singular( 'product' ) ) {
 <div
 	id="product-<?php the_ID(); ?>"
 	<?php wc_product_class( '', $product ); ?>
-	x-data="{ sizeSelectOpen: false, sizeChartOpen: false, customOrderOpen: false, specsOpen: false, careOpen: false }"
-	@negarin:open-custom-order="customOrderOpen = true"
-	@negarin:cart-added.window="sizeSelectOpen = false; customOrderOpen = false"
-	x-init="if (new URLSearchParams(location.search).get('open_custom_order') === '1') { sizeSelectOpen = true; customOrderOpen = true }"
+	x-data="{ sizeSelectOpen: false, sizeChartOpen: false, specsOpen: false, careOpen: false }"
+	@negarin:cart-added.window="sizeSelectOpen = false"
 >
 
 	<?php do_action( 'woocommerce_before_single_product' ); ?>

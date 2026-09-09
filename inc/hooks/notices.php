@@ -16,12 +16,12 @@
  *  4. assets/js/toast.js reads the container on page load and after every
  *     fragment refresh, turns each notice into a toast, then empties it.
  *
- * Services/CustomOrder.php and Services/ProductSizing.php's own REST
- * endpoints don't rely on this — they return their message directly and
- * assets/js/{custom-order,size-select}.js toast it straight away. This
- * hidden-container path is the catch-all for everything else that still
- * calls wc_add_notice() the ordinary way (coupons, cart quantity updates,
- * checkout validation, a hard page-reload fallback if JS ever fails).
+ * Services/ProductSizing.php's own REST endpoint doesn't rely on this —
+ * it returns its message directly and assets/js/size-select.js toasts it
+ * straight away. This hidden-container path is the catch-all for
+ * everything else that still calls wc_add_notice() the ordinary way
+ * (coupons, cart quantity updates, checkout validation, a hard
+ * page-reload fallback if JS ever fails).
  *
  * @package Negarin
  */

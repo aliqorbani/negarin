@@ -111,8 +111,8 @@ add_filter(
 
 /**
  * Same fragment, but wired into `woocommerce_add_to_cart_fragments` too —
- * this is the filter native AJAX add-to-cart, the size-select/custom-order
- * REST endpoints, and the cart-page quantity-update REST endpoint
+ * this is the filter native AJAX add-to-cart, the size-select REST
+ * endpoint, and the cart-page quantity-update REST endpoint
  * (Services/CartAjax.php) all read from, and none of those trigger
  * `woocommerce_update_order_review_fragments` (that one's checkout-only,
  * fired by WooCommerce core's own `update_checkout` jQuery event).

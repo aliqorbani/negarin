@@ -1,7 +1,7 @@
 <?php
 /**
  * "انتخاب سایز" trigger. Include this inside the single-product
- * `x-data="{ sizeSelectOpen:false, sizeChartOpen:false, customOrderOpen:false, ... }"`
+ * `x-data="{ sizeSelectOpen:false, sizeChartOpen:false, ... }"`
  * wrapper (see woocommerce/content-single-product.php). Renders nothing
  * for non-sized products — those keep the plain add-to-cart button.
  *

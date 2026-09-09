@@ -79,7 +79,6 @@ add_action(
         new \Negarin\Services\FlexibleContent();
         new \Negarin\Services\OtpAuth();
         new \Negarin\Services\QuickSearch();
-        new \Negarin\Services\CustomOrder();
         new \Negarin\Services\ProductSizing();
         new \Negarin\Services\CartAjax();
         new \Negarin\Services\ProductFields();

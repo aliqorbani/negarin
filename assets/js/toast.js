@@ -2,7 +2,7 @@
  * Toast notifications (template-parts/components/toast-container.php).
  *
  * Two ways a message becomes a toast:
- *  1. Direct: assets/js/{size-select,custom-order}.js call
+ *  1. Direct: assets/js/size-select.js calls
  *     `window.negarinToast(message, type)` themselves with the response
  *     from their own REST endpoint.
  *  2. Parsed: everything else that still calls WooCommerce's own

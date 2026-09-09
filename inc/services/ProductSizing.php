@@ -3,21 +3,24 @@
  * "انتخاب سایز" — real WooCommerce variable-product sizing.
  *
  * Every abaya is a Variable Product using one global attribute, "سایز"
- * (taxonomy `pa_size`, numeric terms 32..56). This class:
+ * (taxonomy `pa_size`, numeric terms 38..52). This class:
  *
  *  1. Provisions that attribute + its terms in code on `init`, so a fresh
  *     environment never needs a manual "add attribute" step in wp-admin —
  *     consistent with the project's constants/code-first conventions. This
  *     only ever inserts rows the first time they're missing; safe to run
- *     on every request.
+ *     on every request. It also prunes any retired terms (see
+ *     prune_retired_terms()) left over from the old 32–56 range or the
+ *     removed custom-order flow.
  *  2. Provides `is_sized_product()` / `get_size_options()` so templates
  *     don't need to know taxonomy internals.
  *  3. Exposes POST /wp-json/negarin/v1/size-select/add-to-cart, the AJAX
- *     endpoint the size-select modal posts a chosen variation to. A
- *     dedicated endpoint (rather than WooCommerce's generic
- *     `?wc-ajax=add_to_cart`) keeps the request/response shape identical
- *     to Services/CustomOrder.php's own endpoint, so assets/js/toast.js
- *     only has to understand one JSON shape.
+ *     endpoint the size-select modal posts a chosen variation to.
+ *
+ * Per the 2026-09 decision, the store doesn't do inventory management:
+ * there's no "سفارش شخصی" (custom order) fallback anymore, and every size
+ * a product has a variation for is selectable regardless of that
+ * variation's own stock fields — see ensure_no_stock_management().
  *
  * @package Negarin
  */
@@ -41,25 +44,11 @@ class ProductSizing {
     public const ATTRIBUTE_SLUG = 'size';
 
     /**
-     * WooCommerce refuses to add a variable product to the cart without a
-     * real variation_id — there's no way around that (it's a hard check in
-     * WC_Cart::add_to_cart(), not filterable). A custom order has no actual
-     * size, so it needs its own dedicated, hidden variation to attach the
-     * measurements to. This is that variation's reserved attribute term.
-     * get_size_options() filters it out of the customer-facing button grid;
-     * get_or_create_custom_order_variation() lazily creates the matching
-     * WC_Product_Variation the first time a given product receives a
-     * custom order.
-     */
-    public const CUSTOM_ORDER_TERM_SLUG = 'custom-order';
-    private const CUSTOM_ORDER_TERM_NAME = 'سفارش شخصی';
-
-    /**
      * The store's full standard size run. Sizes not relevant to a given
      * product simply aren't added as terms on that product — this is just
      * the universe of terms the attribute can ever contain.
      */
-    private const STANDARD_SIZES = array( 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56 );
+    private const STANDARD_SIZES = array( 38, 40, 42, 44, 46, 48, 50, 52 );
 
     public function __construct() {
         // Priority 0: runs before WC_Post_Types::register_taxonomies() (priority 5),
@@ -120,12 +109,49 @@ class ProductSizing {
             }
         }
 
-        if ( ! term_exists( self::CUSTOM_ORDER_TERM_SLUG, $taxonomy ) ) {
-            wp_insert_term(
-                self::CUSTOM_ORDER_TERM_NAME,
-                $taxonomy,
-                array( 'slug' => self::CUSTOM_ORDER_TERM_SLUG )
-            );
+        $this->prune_retired_terms( $taxonomy );
+    }
+
+    /**
+     * Removes pa_size terms that are no longer part of the store's size
+     * range — the old 32/34/36/54/56 sizes dropped when the run narrowed
+     * to 38–52, and the legacy "سفارش شخصی" term from before the custom
+     * order flow was removed. A term still assigned to a product's
+     * attribute list is left alone (and logged) rather than force-deleted,
+     * since that would silently drop that product's declared size option;
+     * that cleanup is a manual wp-admin edit.
+     */
+    private function prune_retired_terms( string $taxonomy ): void {
+        $keep  = array_map( 'strval', self::STANDARD_SIZES );
+        $terms = get_terms(
+            array(
+                'taxonomy'   => $taxonomy,
+                'hide_empty' => false,
+            )
+        );
+
+        if ( is_wp_error( $terms ) ) {
+            return;
+        }
+
+        foreach ( $terms as $term ) {
+            if ( in_array( $term->name, $keep, true ) ) {
+                continue;
+            }
+
+            if ( (int) $term->count > 0 ) {
+                error_log(
+                    sprintf(
+                        'Negarin: retired pa_size term "%s" (slug: %s) is still assigned to %d product(s) — remove it from those products in wp-admin before it can be deleted.',
+                        $term->name,
+                        $term->slug,
+                        $term->count
+                    )
+                );
+                continue;
+            }
+
+            wp_delete_term( $term->term_id, $taxonomy );
         }
     }
 
@@ -148,10 +174,12 @@ class ProductSizing {
 
     /**
      * Everything the size-select modal needs, already resolved server-side:
-     * every size term the product carries (in store order), whether each
-     * one currently has an in-stock, purchasable variation, and that
-     * variation's ID (0 when out of stock — the button is shown, struck
-     * through, but not selectable, matching the Figma export).
+     * every size term the product carries (in store order), and that
+     * size's variation ID (0 when the product has no variation for it yet
+     * — the button is shown, struck through, but not selectable). The
+     * store doesn't manage inventory, so "in_stock" here just means "a
+     * variation exists for this size" — it no longer reflects that
+     * variation's own stock fields.
      *
      * @return array<int, array{term_id:int, slug:string, label:string, variation_id:int, in_stock:bool}>
      */
@@ -163,37 +191,70 @@ class ProductSizing {
             return array();
         }
 
-        $terms = array_filter( $terms, static fn( $term ) => self::CUSTOM_ORDER_TERM_SLUG !== $term->slug );
-
         usort( $terms, static fn( $a, $b ) => (int) $a->name <=> (int) $b->name );
 
-        $variations = $product->get_available_variations();
-        // Map "size term slug" -> the first matching in-stock variation.
+        // Read straight off the product's own children rather than
+        // get_available_variations() — that method hides a variation
+        // entirely when WooCommerce's "hide out of stock items" catalog
+        // setting is on, which would make an out-of-stock size disappear
+        // instead of just being selectable like every other size.
         $by_slug = array();
-        foreach ( $variations as $variation ) {
-            $slug = $variation['attributes'][ 'attribute_' . $taxonomy ] ?? '';
+        foreach ( $product->get_children() as $variation_id ) {
+            $variation = wc_get_product( $variation_id );
+
+            if ( ! $variation instanceof \WC_Product_Variation || 'publish' !== $variation->get_status() ) {
+                continue;
+            }
+
+            $raw_attributes = $variation->get_attributes(); // Flat ['pa_size' => 'raw-slug'].
+            $slug           = $raw_attributes[ $taxonomy ] ?? '';
+
             if ( '' === $slug ) {
                 continue;
             }
-            // Prefer an in-stock entry if one exists for this slug; otherwise keep the first.
-            if ( ! isset( $by_slug[ $slug ] ) || ( ! $by_slug[ $slug ]['is_in_stock'] && $variation['is_in_stock'] ) ) {
-                $by_slug[ $slug ] = $variation;
-            }
+
+            self::ensure_no_stock_management( $variation );
+            $by_slug[ $slug ] = $variation_id;
         }
 
         $options = array();
         foreach ( $terms as $term ) {
-            $variation = $by_slug[ $term->slug ] ?? null;
             $options[] = array(
                 'term_id'      => $term->term_id,
                 'slug'         => $term->slug,
                 'label'        => self::to_persian_digits( $term->name ),
-                'variation_id' => $variation ? (int) $variation['variation_id'] : 0,
-                'in_stock'     => (bool) $variation && (bool) $variation['is_in_stock'],
+                'variation_id' => $by_slug[ $term->slug ] ?? 0,
+                'in_stock'     => isset( $by_slug[ $term->slug ] ),
             );
         }
 
         return $options;
+    }
+
+    /**
+     * Per the 2026-09 decision the store doesn't manage inventory: any
+     * size the product has a variation for must stay selectable no matter
+     * what its stock fields say (leftovers from earlier testing, a stray
+     * admin edit, etc). Rather than trust each variation to already be in
+     * that state, this normalizes it the first time the variation is
+     * touched and saves the correction so it sticks.
+     */
+    private static function ensure_no_stock_management( \WC_Product_Variation $variation ): void {
+        $changed = false;
+
+        if ( $variation->get_manage_stock() ) {
+            $variation->set_manage_stock( false );
+            $changed = true;
+        }
+
+        if ( 'instock' !== $variation->get_stock_status() ) {
+            $variation->set_stock_status( 'instock' );
+            $changed = true;
+        }
+
+        if ( $changed ) {
+            $variation->save();
+        }
     }
 
     /**
@@ -217,62 +278,6 @@ class ProductSizing {
                 '9' => '۹',
             )
         );
-    }
-
-    /**
-     * The hidden variation Services/CustomOrder.php attaches measurements
-     * to. Created the first time a given product receives a custom order,
-     * then reused — never shown in get_size_options(), never
-     * stock-managed (a custom order is made-to-order, it doesn't draw from
-     * any standard size's stock).
-     */
-    public static function get_or_create_custom_order_variation( \WC_Product_Variable $product ): int {
-        $taxonomy = self::taxonomy();
-        $slug     = self::CUSTOM_ORDER_TERM_SLUG;
-
-        foreach ( $product->get_children() as $variation_id ) {
-            $variation = wc_get_product( $variation_id );
-            if ( $variation instanceof \WC_Product_Variation ) {
-                $raw_attributes = $variation->get_attributes(); // Flat ['pa_size' => 'raw-slug'] — NOT the resolved term name get_attribute() (singular) would return.
-                if ( ( $raw_attributes[ $taxonomy ] ?? '' ) === $slug ) {
-                    return $variation_id;
-                }
-            }
-        }
-
-        $term = get_term_by( 'slug', $slug, $taxonomy );
-
-        if ( ! $term ) {
-            return 0; // Shouldn't happen — ensure_terms_exist() provisions this on every load.
-        }
-
-        // Make sure the term is one of this product's declared attribute
-        // values — WooCommerce only accepts a variation attribute value
-        // that's already listed on the parent.
-        $attributes = $product->get_attributes();
-
-        if ( isset( $attributes[ $taxonomy ] ) ) {
-            $attribute = $attributes[ $taxonomy ];
-            $options   = $attribute->get_options();
-
-            if ( ! in_array( $term->term_id, $options, true ) ) {
-                $options[] = $term->term_id;
-                $attribute->set_options( $options );
-                $attributes[ $taxonomy ] = $attribute;
-                $product->set_attributes( $attributes );
-                $product->save();
-            }
-        }
-
-        $variation = new \WC_Product_Variation();
-        $variation->set_parent_id( $product->get_id() );
-        $variation->set_attributes( array( $taxonomy => $slug ) );
-        $variation->set_regular_price( $product->get_price() ?: $product->get_regular_price() );
-        $variation->set_manage_stock( false );
-        $variation->set_stock_status( 'instock' );
-        $variation->set_status( 'publish' );
-
-        return (int) $variation->save();
     }
 
     public function register_routes(): void {
@@ -304,14 +309,14 @@ class ProductSizing {
         $match   = null;
 
         foreach ( $options as $option ) {
-            if ( $option['variation_id'] === $variation_id ) {
+            if ( $option['variation_id'] > 0 && $option['variation_id'] === $variation_id ) {
                 $match = $option;
                 break;
             }
         }
 
-        if ( ! $match || ! $match['in_stock'] ) {
-            return new WP_Error( 'negarin_size_unavailable', __( 'سایز انتخابی موجود نیست، لطفاً سایز دیگری را انتخاب کنید.', 'negarin' ), array( 'status' => 409 ) );
+        if ( ! $match ) {
+            return new WP_Error( 'negarin_size_unavailable', __( 'این سایز برای این محصول تعریف نشده است.', 'negarin' ), array( 'status' => 409 ) );
         }
 
         $variation_attributes = array(

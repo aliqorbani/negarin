@@ -1,23 +1,20 @@
 /**
  * Alpine component for template-parts/components/size-select-modal.php.
  *
- * `sizeSelectOpen` / `sizeChartOpen` / `customOrderOpen` all live on the
- * ancestor x-data in woocommerce/content-single-product.php, not here —
- * this component only owns the size grid + add-to-cart request. Crossing
- * back out to the ancestor (closing everything after a successful add, or
- * opening the custom-order modal) is done with a dispatched DOM event
- * rather than `this.someAncestorProp = ...`, which only reaches whichever
- * scope actually defined that property when called from *inside* a
- * method body — dispatch avoids depending on that.
+ * `sizeSelectOpen` / `sizeChartOpen` live on the ancestor x-data in
+ * woocommerce/content-single-product.php, not here — this component only
+ * owns the size grid + add-to-cart request. Crossing back out to the
+ * ancestor (closing the modal after a successful add) is done with a
+ * dispatched DOM event rather than `this.someAncestorProp = ...`, which
+ * only reaches whichever scope actually defined that property when called
+ * from *inside* a method body — dispatch avoids depending on that.
  */
 import { applyFragments } from './fragments.js';
 
-export function negarinSizeSelect({ productId, options, isLoggedIn, loginRedirectUrl }) {
+export function negarinSizeSelect({ productId, options }) {
   return {
     productId,
     options,
-    isLoggedIn,
-    loginRedirectUrl,
     selected: null,
     loading: false,
     error: '',
@@ -26,14 +23,6 @@ export function negarinSizeSelect({ productId, options, isLoggedIn, loginRedirec
       if (!option.in_stock) return;
       this.error = '';
       this.selected = option.slug;
-    },
-
-    goToCustomOrder() {
-      if (!this.isLoggedIn) {
-        window.location.href = this.loginRedirectUrl;
-        return;
-      }
-      this.$dispatch('negarin:open-custom-order');
     },
 
     async addToCart() {

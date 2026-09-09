@@ -2,8 +2,7 @@
 /**
  * "راهنمای سایز" — stacks on top of size-select-modal.php (z-60 over its
  * z-50) via `sizeChartOpen`. Closing it just flips that flag back off;
- * size-select-modal.php stays mounted and open underneath, unaffected —
- * same nested-modal pattern used by custom-order-modal.php.
+ * size-select-modal.php stays mounted and open underneath, unaffected.
  *
  * Content is a single ACF WYSIWYG field (Theme Options → Sizing Presets →
  * "محتوای راهنمای سایز") the admin edits in Text/HTML mode to paste a size
