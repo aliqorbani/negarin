@@ -22,7 +22,7 @@ get_header();
         <article <?php post_class(); ?>>
 
             <?php if ( ! $is_bare_login_screen ) : ?>
-                <h1 class="font-serif text-3xl mb-6">
+                <h1 class="font-serif md:text-3xl mb-6 text-center md:text-right font-semibold text-lg">
                     <?php the_title(); ?>
                 </h1>
             <?php endif; ?>

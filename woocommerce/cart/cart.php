@@ -29,7 +29,24 @@ do_action( 'woocommerce_before_cart' );
                 <?php do_action( 'woocommerce_before_cart_table' ); ?>
 
                 <div class="order-1">
-                    <div class="overflow-x-auto border border-negarin-line p-5 pb-0">
+
+                    <!-- Mobile cart cards — Figma 165:422 "Cart_mobile" -->
+                    <div class="md:hidden">
+                        <?php
+                        foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+                            get_template_part(
+                                    'template-parts/components/cart-item-card',
+                                    null,
+                                    array(
+                                            'cart_item'     => $cart_item,
+                                            'cart_item_key' => $cart_item_key,
+                                    )
+                            );
+                        }
+                        ?>
+                    </div>
+
+                    <div class="hidden md:block overflow-x-auto border border-negarin-line p-5 pb-0">
                         <table class="w-full text-sm text-right mt-0 mb-0">
                             <thead>
                             <tr class="bg-[#f0f1f2] text-xs">
