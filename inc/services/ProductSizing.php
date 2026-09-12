@@ -193,6 +193,31 @@ class ProductSizing {
 
         usort( $terms, static fn( $a, $b ) => (int) $a->name <=> (int) $b->name );
 
+        // Loading the cart's contents from the session happens lazily —
+        // once, the first time anything actually asks for them — and
+        // WC_Cart doesn't retry it if that first attempt gets disrupted.
+        // Saving a product busts WordPress's post cache, which is
+        // harmless on its own but if it happens to land in the middle of
+        // that lazy load, an item already sitting in the customer's cart
+        // can come out of it missing or wrong. ensure_no_stock_management()
+        // below does exactly this kind of save on the parent and on every
+        // variation, so priming the load here — before any of that runs —
+        // sidesteps the whole interaction. Cheap and idempotent if it's
+        // already loaded.
+        if ( WC()->cart ) {
+            WC()->cart->get_cart();
+        }
+
+        // The parent itself can also carry "Manage stock?" (Product data
+        // → Inventory tab, separate from each variation's own Inventory
+        // box) — when it's on, every variation whose own setting is left
+        // at the "same as parent" default draws from ONE shared quantity
+        // across all sizes combined, instead of each size being
+        // independently selectable. Clear that first so a variation's own
+        // manage_stock reading below isn't still inherited from a
+        // stock-managing parent.
+        self::ensure_no_stock_management( $product );
+
         // Read straight off the product's own children rather than
         // get_available_variations() — that method hides a variation
         // entirely when WooCommerce's "hide out of stock items" catalog
@@ -235,25 +260,28 @@ class ProductSizing {
      * Per the 2026-09 decision the store doesn't manage inventory: any
      * size the product has a variation for must stay selectable no matter
      * what its stock fields say (leftovers from earlier testing, a stray
-     * admin edit, etc). Rather than trust each variation to already be in
-     * that state, this normalizes it the first time the variation is
-     * touched and saves the correction so it sticks.
+     * admin edit, etc), and no two sizes of the same product should ever
+     * draw from a shared stock pool. Rather than trust the parent product
+     * or its variations to already be in that state, this normalizes
+     * whichever one is passed in — called on both, see get_size_options()
+     * — the first time it's touched, and saves the correction so it
+     * sticks.
      */
-    private static function ensure_no_stock_management( \WC_Product_Variation $variation ): void {
+    private static function ensure_no_stock_management( \WC_Product $product ): void {
         $changed = false;
 
-        if ( $variation->get_manage_stock() ) {
-            $variation->set_manage_stock( false );
+        if ( $product->get_manage_stock() ) {
+            $product->set_manage_stock( false );
             $changed = true;
         }
 
-        if ( 'instock' !== $variation->get_stock_status() ) {
-            $variation->set_stock_status( 'instock' );
+        if ( 'instock' !== $product->get_stock_status() ) {
+            $product->set_stock_status( 'instock' );
             $changed = true;
         }
 
         if ( $changed ) {
-            $variation->save();
+            $product->save();
         }
     }
 
@@ -305,6 +333,13 @@ class ProductSizing {
             return new WP_Error( 'negarin_invalid_product', __( 'محصول یافت نشد.', 'negarin' ), array( 'status' => 404 ) );
         }
 
+        // Load before get_size_options() below touches (and potentially
+        // saves) any product/variation post — see the comment at the top
+        // of get_size_options() for why the ordering matters.
+        if ( ! WC()->cart ) {
+            wc_load_cart();
+        }
+
         $options = self::get_size_options( $product );
         $match   = null;
 
@@ -322,10 +357,6 @@ class ProductSizing {
         $variation_attributes = array(
             'attribute_' . self::taxonomy() => $match['slug'],
         );
-
-        if ( ! WC()->cart ) {
-            wc_load_cart();
-        }
 
         $cart_item_key = WC()->cart->add_to_cart( $product_id, 1, $variation_id, $variation_attributes );
 

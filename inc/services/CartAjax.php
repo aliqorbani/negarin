@@ -65,7 +65,19 @@ class CartAjax {
         $cart_item_key = sanitize_text_field( (string) $request->get_param( 'cart_item_key' ) );
         $quantity      = absint( $request->get_param( 'quantity' ) );
 
-        if ( ! WC()->cart->get_cart_item( $cart_item_key ) ) {
+        // get_cart_item() reads WC_Cart's internal $cart_contents array
+        // directly and — unlike get_cart() — does NOT first make sure
+        // that array has actually been populated from the session. On a
+        // cold WC_Cart instance (exactly what the `wc_load_cart()` call
+        // above just created) $cart_contents is still empty at this
+        // point, so get_cart_item() reports "not found" even for an item
+        // that's genuinely in the customer's cart. get_cart() triggers
+        // that session load as a side effect, so call it first and read
+        // from its result instead of asking get_cart_item() to do both
+        // jobs at once.
+        $cart = WC()->cart->get_cart();
+
+        if ( ! isset( $cart[ $cart_item_key ] ) ) {
             return new WP_Error( 'negarin_invalid_cart_item', __( 'این کالا در سبد خرید یافت نشد.', 'negarin' ), array( 'status' => 404 ) );
         }
 

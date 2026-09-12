@@ -1,969 +1,124 @@
-diff --git a/assets/js/app.js b/assets/js/app.js
-index 36ead19..856c663 100644
---- a/assets/js/app.js
-+++ b/assets/js/app.js
-@@ -7,7 +7,6 @@ import './spa.js';
+diff --git a/inc/services/CartAjax.php b/inc/services/CartAjax.php
+index 9ba6a95..c874f35 100644
+--- a/inc/services/CartAjax.php
++++ b/inc/services/CartAjax.php
+@@ -65,7 +65,19 @@ class CartAjax {
+         $cart_item_key = sanitize_text_field( (string) $request->get_param( 'cart_item_key' ) );
+         $quantity      = absint( $request->get_param( 'quantity' ) );
  
- import Alpine from 'alpinejs';
- import { negarinOtp } from './otp.js';
--import { negarinCustomOrder } from './custom-order.js';
- import { negarinSizeSelect } from './size-select.js';
- import { negarinSearch } from './search.js';
- import { negarinToastStore } from './toast.js';
-@@ -19,7 +18,6 @@ import './header-offset.js';
- window.Alpine = Alpine;
- Alpine.store('toast', negarinToastStore());
- Alpine.data('negarinOtp', negarinOtp);
--Alpine.data('negarinCustomOrder', negarinCustomOrder);
- Alpine.data('negarinSizeSelect', negarinSizeSelect);
- Alpine.data('negarinSearch', negarinSearch);
- Alpine.start();
-diff --git a/assets/js/custom-order.js b/assets/js/custom-order.js
-deleted file mode 100644
-index 6e1af27..0000000
---- a/assets/js/custom-order.js
-+++ /dev/null
-@@ -1,47 +0,0 @@
--/**
-- * Alpine component for template-parts/components/custom-order-modal.php.
-- * Requires a logged-in customer — the modal is never opened for a guest
-- * in the first place (size-select-modal.php sends them to /my-account/
-- * instead), but this still submits to a REST route that re-checks login
-- * server-side (Services/CustomOrder.php::validate_submission()).
-- */
--import { applyFragments } from './fragments.js';
--
--export function negarinCustomOrder({ productId }) {
--  return {
--    productId,
--    loading: false,
--    error: '',
--    measurements: {
--      chest: '',
--      sleeve: '',
--      shoulder: '',
--      length: '',
--    },
--
--    async submit() {
--      if (this.loading) return;
--      this.loading = true;
--      this.error = '';
--
--      try {
--        const res = await fetch(`${negarinData.restUrl}custom-order/add-to-cart`, {
--          method: 'POST',
--          headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': negarinData.nonce },
--          body: JSON.stringify({ product_id: this.productId, measurements: this.measurements }),
--        });
--        const data = await res.json();
--        if (!res.ok) throw new Error(data.message || 'خطایی رخ داد.');
--
--        applyFragments(data.fragments);
--        window.negarinToast(data.message, 'success');
--        this.$dispatch('negarin:cart-added');
--      } catch (e) {
--        this.error = e.message;
--        window.negarinToast(e.message, 'error');
--      } finally {
--        this.loading = false;
--      }
--    },
--  };
--}
-diff --git a/assets/js/size-select.js b/assets/js/size-select.js
-index 22507cb..c8bb1b2 100644
---- a/assets/js/size-select.js
-+++ b/assets/js/size-select.js
-@@ -1,23 +1,20 @@
- /**
-  * Alpine component for template-parts/components/size-select-modal.php.
-  *
-- * `sizeSelectOpen` / `sizeChartOpen` / `customOrderOpen` all live on the
-- * ancestor x-data in woocommerce/content-single-product.php, not here —
-- * this component only owns the size grid + add-to-cart request. Crossing
-- * back out to the ancestor (closing everything after a successful add, or
-- * opening the custom-order modal) is done with a dispatched DOM event
-- * rather than `this.someAncestorProp = ...`, which only reaches whichever
-- * scope actually defined that property when called from *inside* a
-- * method body — dispatch avoids depending on that.
-+ * `sizeSelectOpen` / `sizeChartOpen` live on the ancestor x-data in
-+ * woocommerce/content-single-product.php, not here — this component only
-+ * owns the size grid + add-to-cart request. Crossing back out to the
-+ * ancestor (closing the modal after a successful add) is done with a
-+ * dispatched DOM event rather than `this.someAncestorProp = ...`, which
-+ * only reaches whichever scope actually defined that property when called
-+ * from *inside* a method body — dispatch avoids depending on that.
-  */
- import { applyFragments } from './fragments.js';
+-        if ( ! WC()->cart->get_cart_item( $cart_item_key ) ) {
++        // get_cart_item() reads WC_Cart's internal $cart_contents array
++        // directly and — unlike get_cart() — does NOT first make sure
++        // that array has actually been populated from the session. On a
++        // cold WC_Cart instance (exactly what the `wc_load_cart()` call
++        // above just created) $cart_contents is still empty at this
++        // point, so get_cart_item() reports "not found" even for an item
++        // that's genuinely in the customer's cart. get_cart() triggers
++        // that session load as a side effect, so call it first and read
++        // from its result instead of asking get_cart_item() to do both
++        // jobs at once.
++        $cart = WC()->cart->get_cart();
++
++        if ( ! isset( $cart[ $cart_item_key ] ) ) {
+             return new WP_Error( 'negarin_invalid_cart_item', __( 'این کالا در سبد خرید یافت نشد.', 'negarin' ), array( 'status' => 404 ) );
+         }
  
--export function negarinSizeSelect({ productId, options, isLoggedIn, loginRedirectUrl }) {
-+export function negarinSizeSelect({ productId, options }) {
-   return {
-     productId,
-     options,
--    isLoggedIn,
--    loginRedirectUrl,
-     selected: null,
-     loading: false,
-     error: '',
-@@ -28,14 +25,6 @@ export function negarinSizeSelect({ productId, options, isLoggedIn, loginRedirec
-       this.selected = option.slug;
-     },
+diff --git a/inc/services/ProductSizing.php b/inc/services/ProductSizing.php
+index 96772ae..c2c5839 100644
+--- a/inc/services/ProductSizing.php
++++ b/inc/services/ProductSizing.php
+@@ -193,6 +193,31 @@ class ProductSizing {
  
--    goToCustomOrder() {
--      if (!this.isLoggedIn) {
--        window.location.href = this.loginRedirectUrl;
--        return;
--      }
--      this.$dispatch('negarin:open-custom-order');
--    },
--
-     async addToCart() {
-       const option = this.options.find((o) => o.slug === this.selected);
-       if (!option || this.loading) return;
-diff --git a/assets/js/toast.js b/assets/js/toast.js
-index 6c625f2..dd4d9d1 100644
---- a/assets/js/toast.js
-+++ b/assets/js/toast.js
-@@ -2,7 +2,7 @@
-  * Toast notifications (template-parts/components/toast-container.php).
-  *
-  * Two ways a message becomes a toast:
-- *  1. Direct: assets/js/{size-select,custom-order}.js call
-+ *  1. Direct: assets/js/size-select.js calls
-  *     `window.negarinToast(message, type)` themselves with the response
-  *     from their own REST endpoint.
-  *  2. Parsed: everything else that still calls WooCommerce's own
-diff --git a/functions.php b/functions.php
-index 74962c7..da4eccd 100644
---- a/functions.php
-+++ b/functions.php
-@@ -79,7 +79,6 @@ add_action(
-         new \Negarin\Services\FlexibleContent();
-         new \Negarin\Services\OtpAuth();
-         new \Negarin\Services\QuickSearch();
--        new \Negarin\Services\CustomOrder();
-         new \Negarin\Services\ProductSizing();
-         new \Negarin\Services\CartAjax();
-         new \Negarin\Services\ProductFields();
-diff --git a/inc/hooks/notices.php b/inc/hooks/notices.php
-index 034aba7..a5d7779 100644
---- a/inc/hooks/notices.php
-+++ b/inc/hooks/notices.php
-@@ -16,12 +16,12 @@
-  *  4. assets/js/toast.js reads the container on page load and after every
-  *     fragment refresh, turns each notice into a toast, then empties it.
-  *
-- * Services/CustomOrder.php and Services/ProductSizing.php's own REST
-- * endpoints don't rely on this — they return their message directly and
-- * assets/js/{custom-order,size-select}.js toast it straight away. This
-- * hidden-container path is the catch-all for everything else that still
-- * calls wc_add_notice() the ordinary way (coupons, cart quantity updates,
-- * checkout validation, a hard page-reload fallback if JS ever fails).
-+ * Services/ProductSizing.php's own REST endpoint doesn't rely on this —
-+ * it returns its message directly and assets/js/size-select.js toasts it
-+ * straight away. This hidden-container path is the catch-all for
-+ * everything else that still calls wc_add_notice() the ordinary way
-+ * (coupons, cart quantity updates, checkout validation, a hard
-+ * page-reload fallback if JS ever fails).
-  *
-  * @package Negarin
-  */
-diff --git a/inc/hooks/woocommerce.php b/inc/hooks/woocommerce.php
-index 7ef1caf..3f309b0 100644
---- a/inc/hooks/woocommerce.php
-+++ b/inc/hooks/woocommerce.php
-@@ -111,8 +111,8 @@ add_filter(
+         usort( $terms, static fn( $a, $b ) => (int) $a->name <=> (int) $b->name );
  
- /**
-  * Same fragment, but wired into `woocommerce_add_to_cart_fragments` too —
-- * this is the filter native AJAX add-to-cart, the size-select/custom-order
-- * REST endpoints, and the cart-page quantity-update REST endpoint
-+ * this is the filter native AJAX add-to-cart, the size-select REST
-+ * endpoint, and the cart-page quantity-update REST endpoint
-  * (Services/CartAjax.php) all read from, and none of those trigger
-  * `woocommerce_update_order_review_fragments` (that one's checkout-only,
-  * fired by WooCommerce core's own `update_checkout` jQuery event).
-diff --git a/inc/services/CustomOrder.php b/inc/services/CustomOrder.php
-deleted file mode 100644
-index 847e470..0000000
---- a/inc/services/CustomOrder.php
-+++ /dev/null
-@@ -1,244 +0,0 @@
--<?php
--/**
-- * "سفارش شخصی" (custom measurement order) — the fallback offered from
-- * inside the size-select modal (template-parts/components/size-select-modal.php)
-- * when none of a product's standard sizes fit.
-- *
-- * Flow:
-- *  1. From the size-select modal, "سفارش شخصی" opens this modal
-- *     (template-parts/components/custom-order-modal.php), stacked on top —
-- *     exactly like the size-chart modal stacks on the size-select modal.
-- *  2. The form always collects exactly four measurements: دور سینه، قد
-- *     آستین، سرشانه، قد عبا (fixed on purpose — not admin-configurable,
-- *     per the 2026-09 decision to match the simplified Figma form exactly).
-- *  3. This requires a logged-in customer — OTP is the only identity this
-- *     store has, and there's no separate guest name/phone step anymore.
-- *     The "سفارش شخصی" trigger sends a signed-out shopper to /my-account/
-- *     (?redirect_to=<this product>) instead of opening the modal; the
-- *     modal itself and this endpoint both re-check login as a hard guard.
-- *  4. On submit, POST /wp-json/negarin/v1/custom-order/add-to-cart adds
-- *     the *parent* product to the cart with no variation — a custom order
-- *     is made-to-measure, not picked from stocked sizes, so no variation
-- *     stock applies. The measurements ride along as cart_item_data, which
-- *     WooCommerce copies onto the **order item meta** at checkout.
-- *
-- * @package Negarin
-- */
--
--namespace Negarin\Services;
--
--use WP_REST_Request;
--use WP_REST_Response;
--use WP_Error;
--
--if ( ! defined( 'ABSPATH' ) ) {
--    exit;
--}
--
--class CustomOrder {
--
--    /**
--     * Fixed field definitions: key => [label, unit]. Not admin-configurable —
--     * see the class docblock for why.
--     */
--    private const FIELDS = array(
--        'chest'    => array( 'label' => 'دور سینه', 'unit' => 'سانتی‌متر' ),
--        'sleeve'   => array( 'label' => 'قد آستین', 'unit' => 'سانتی‌متر' ),
--        'shoulder' => array( 'label' => 'سرشانه', 'unit' => 'سانتی‌متر' ),
--        'length'   => array( 'label' => 'قد عبا', 'unit' => 'سانتی‌متر' ),
--    );
--
--    public function __construct() {
--        add_action( 'rest_api_init', array( $this, 'register_routes' ) );
--        add_filter( 'woocommerce_get_item_data', array( $this, 'display_in_cart' ), 10, 2 );
--        add_action( 'woocommerce_checkout_create_order_line_item', array( $this, 'save_to_order_item' ), 10, 4 );
--    }
--
--    /**
--     * @return array<int, array{key:string, label:string, unit:string}>
--     */
--    public static function get_measurement_fields(): array {
--        $fields = array();
--        foreach ( self::FIELDS as $key => $field ) {
--            $fields[] = array(
--                'key'   => $key,
--                'label' => $field['label'],
--                'unit'  => $field['unit'],
--            );
--        }
--        return $fields;
--    }
--
--    /**
--     * A product is eligible for the custom-order fallback whenever it's
--     * offered through the sized/variable flow — a plain simple product has
--     * nothing to "not fit", so it never shows this option.
--     */
--    public static function is_available_for( \WC_Product $product ): bool {
--        return $product->is_type( 'variable' );
--    }
--
--    /**
--     * Validate and normalize the raw measurement payload. Returns WP_Error
--     * on any failure, including "not logged in" — that check lives here
--     * too (not just in the REST route) so it's enforced no matter how this
--     * method is ever called.
--     *
--     * @param array $raw Decoded JSON body: { measurements: { key: value } }.
--     * @return array|\WP_Error
--     */
--    public function validate_submission( array $raw ) {
--        if ( ! is_user_logged_in() ) {
--            return new WP_Error( 'negarin_login_required', __( 'برای ثبت سفارش شخصی ابتدا وارد حساب کاربری خود شوید.', 'negarin' ), array( 'status' => 401 ) );
--        }
--
--        $measurements = array();
--        $errors       = array();
--        $raw_values   = is_array( $raw['measurements'] ?? null ) ? $raw['measurements'] : array();
--
--        foreach ( self::FIELDS as $key => $field ) {
--            $value = trim( (string) ( $raw_values[ $key ] ?? '' ) );
--
--            if ( '' === $value ) {
--                $errors[] = sprintf(
--                /* translators: %s: measurement field label, e.g. "دور سینه" */
--                    __( 'لطفاً %s را وارد کنید.', 'negarin' ),
--                    $field['label']
--                );
--                continue;
--            }
--
--            if ( ! is_numeric( $value ) || $value <= 0 || $value > 300 ) {
--                $errors[] = sprintf(
--                /* translators: %s: measurement field label */
--                    __( 'مقدار وارد شده برای %s نامعتبر است.', 'negarin' ),
--                    $field['label']
--                );
--                continue;
--            }
--
--            $measurements[ $key ] = round( (float) $value, 1 );
--        }
--
--        if ( $errors ) {
--            return new WP_Error( 'negarin_invalid_measurements', implode( ' ', $errors ), array( 'status' => 422 ) );
--        }
--
--        return array( 'measurements' => $measurements );
--    }
--
--    public function register_routes(): void {
--        register_rest_route(
--            'negarin/v1',
--            '/custom-order/add-to-cart',
--            array(
--                'methods'             => 'POST',
--                'callback'            => array( $this, 'handle_add_to_cart' ),
--                'permission_callback' => '__return_true', // validate_submission() enforces the login requirement itself.
--                'args'                => array(
--                    'product_id'   => array( 'required' => true ),
--                    'measurements' => array( 'required' => true ),
--                ),
--            )
--        );
--    }
--
--    public function handle_add_to_cart( WP_REST_Request $request ) {
--        $product_id = absint( $request->get_param( 'product_id' ) );
--        $product    = wc_get_product( $product_id );
--
--        if ( ! $product || ! $product->is_purchasable() ) {
--            return new WP_Error( 'negarin_invalid_product', __( 'محصول یافت نشد.', 'negarin' ), array( 'status' => 404 ) );
--        }
--
--        $submission = $this->validate_submission( (array) $request->get_json_params() );
--
--        if ( is_wp_error( $submission ) ) {
--            return $submission;
--        }
--
--        $cart_item_data = array(
--            'negarin_custom_order' => $submission,
--            'unique_key'           => md5( microtime() . wp_rand() ),
--        );
--
++        // Loading the cart's contents from the session happens lazily —
++        // once, the first time anything actually asks for them — and
++        // WC_Cart doesn't retry it if that first attempt gets disrupted.
++        // Saving a product busts WordPress's post cache, which is
++        // harmless on its own but if it happens to land in the middle of
++        // that lazy load, an item already sitting in the customer's cart
++        // can come out of it missing or wrong. ensure_no_stock_management()
++        // below does exactly this kind of save on the parent and on every
++        // variation, so priming the load here — before any of that runs —
++        // sidesteps the whole interaction. Cheap and idempotent if it's
++        // already loaded.
++        if ( WC()->cart ) {
++            WC()->cart->get_cart();
++        }
++
++        // The parent itself can also carry "Manage stock?" (Product data
++        // → Inventory tab, separate from each variation's own Inventory
++        // box) — when it's on, every variation whose own setting is left
++        // at the "same as parent" default draws from ONE shared quantity
++        // across all sizes combined, instead of each size being
++        // independently selectable. Clear that first so a variation's own
++        // manage_stock reading below isn't still inherited from a
++        // stock-managing parent.
++        self::ensure_no_stock_management( $product );
++
+         // Read straight off the product's own children rather than
+         // get_available_variations() — that method hides a variation
+         // entirely when WooCommerce's "hide out of stock items" catalog
+@@ -235,25 +260,28 @@ class ProductSizing {
+      * Per the 2026-09 decision the store doesn't manage inventory: any
+      * size the product has a variation for must stay selectable no matter
+      * what its stock fields say (leftovers from earlier testing, a stray
+-     * admin edit, etc). Rather than trust each variation to already be in
+-     * that state, this normalizes it the first time the variation is
+-     * touched and saves the correction so it sticks.
++     * admin edit, etc), and no two sizes of the same product should ever
++     * draw from a shared stock pool. Rather than trust the parent product
++     * or its variations to already be in that state, this normalizes
++     * whichever one is passed in — called on both, see get_size_options()
++     * — the first time it's touched, and saves the correction so it
++     * sticks.
+      */
+-    private static function ensure_no_stock_management( \WC_Product_Variation $variation ): void {
++    private static function ensure_no_stock_management( \WC_Product $product ): void {
+         $changed = false;
+ 
+-        if ( $variation->get_manage_stock() ) {
+-            $variation->set_manage_stock( false );
++        if ( $product->get_manage_stock() ) {
++            $product->set_manage_stock( false );
+             $changed = true;
+         }
+ 
+-        if ( 'instock' !== $variation->get_stock_status() ) {
+-            $variation->set_stock_status( 'instock' );
++        if ( 'instock' !== $product->get_stock_status() ) {
++            $product->set_stock_status( 'instock' );
+             $changed = true;
+         }
+ 
+         if ( $changed ) {
+-            $variation->save();
++            $product->save();
+         }
+     }
+ 
+@@ -305,6 +333,13 @@ class ProductSizing {
+             return new WP_Error( 'negarin_invalid_product', __( 'محصول یافت نشد.', 'negarin' ), array( 'status' => 404 ) );
+         }
+ 
++        // Load before get_size_options() below touches (and potentially
++        // saves) any product/variation post — see the comment at the top
++        // of get_size_options() for why the ordering matters.
++        if ( ! WC()->cart ) {
++            wc_load_cart();
++        }
++
+         $options = self::get_size_options( $product );
+         $match   = null;
+ 
+@@ -323,10 +358,6 @@ class ProductSizing {
+             'attribute_' . self::taxonomy() => $match['slug'],
+         );
+ 
 -        if ( ! WC()->cart ) {
 -            wc_load_cart();
 -        }
 -
--        // WooCommerce refuses to add a variable product to the cart
--        // without a real variation_id (hard-coded in WC_Cart::add_to_cart(),
--        // not filterable) — a custom order has no actual size, so it uses a
--        // dedicated hidden variation created on first use. See
--        // Services/ProductSizing.php::get_or_create_custom_order_variation().
--        $variation_id         = 0;
--        $variation_attributes = array();
--
--        if ( $product instanceof \WC_Product_Variable ) {
--            $variation_id = \Negarin\Services\ProductSizing::get_or_create_custom_order_variation( $product );
--
--            if ( ! $variation_id ) {
--                return new WP_Error( 'negarin_add_to_cart_failed', __( 'افزودن به سبد خرید با خطا مواجه شد.', 'negarin' ), array( 'status' => 400 ) );
--            }
--
--            $variation_attributes = array(
--                'attribute_' . \Negarin\Services\ProductSizing::taxonomy() => \Negarin\Services\ProductSizing::CUSTOM_ORDER_TERM_SLUG,
--            );
--        }
--
--        $cart_item_key = WC()->cart->add_to_cart( $product_id, 1, $variation_id, $variation_attributes, $cart_item_data );
--
--        if ( ! $cart_item_key ) {
--            $errors = wc_get_notices( 'error' );
--            wc_clear_notices();
--            $message = $errors ? wp_strip_all_tags( $errors[0]['notice'] ) : __( 'افزودن به سبد خرید با خطا مواجه شد.', 'negarin' );
--            return new WP_Error( 'negarin_add_to_cart_failed', $message, array( 'status' => 400 ) );
--        }
--
--        return new WP_REST_Response(
--            array(
--                'success'    => true,
--                'message'    => __( 'سفارش شخصی به سبد خرید اضافه شد.', 'negarin' ),
--                'cart_count' => WC()->cart->get_cart_contents_count(),
--                'fragments'  => apply_filters( 'woocommerce_add_to_cart_fragments', array() ),
--            ),
--            200
--        );
--    }
--
--    /**
--     * Show a readable summary of the measurements in cart/checkout review tables.
--     */
--    public function display_in_cart( array $item_data, array $cart_item ): array {
--        if ( empty( $cart_item['negarin_custom_order'] ) ) {
--            return $item_data;
--        }
--
--        $labels = wp_list_pluck( self::get_measurement_fields(), 'label', 'key' );
--
--        foreach ( $cart_item['negarin_custom_order']['measurements'] as $key => $value ) {
--            $item_data[] = array(
--                'name'  => $labels[ $key ] ?? $key,
--                'value' => $value,
--            );
--        }
--
--        return $item_data;
--    }
--
--    /**
--     * Persist the measurements as order item meta — visible on the order
--     * edit screen and in order emails.
--     */
--    public function save_to_order_item( $item, $cart_item_key, $values, $order ): void {
--        if ( empty( $values['negarin_custom_order'] ) ) {
--            return;
--        }
--
--        $labels = wp_list_pluck( self::get_measurement_fields(), 'label', 'key' );
--
--        foreach ( $values['negarin_custom_order']['measurements'] as $key => $value ) {
--            $item->add_meta_data( $labels[ $key ] ?? $key, $value, true );
--        }
--    }
--}
-\ No newline at end of file
-diff --git a/inc/services/ProductSizing.php b/inc/services/ProductSizing.php
-index a7f0f8e..96772ae 100644
---- a/inc/services/ProductSizing.php
-+++ b/inc/services/ProductSizing.php
-@@ -3,21 +3,24 @@
-  * "انتخاب سایز" — real WooCommerce variable-product sizing.
-  *
-  * Every abaya is a Variable Product using one global attribute, "سایز"
-- * (taxonomy `pa_size`, numeric terms 32..56). This class:
-+ * (taxonomy `pa_size`, numeric terms 38..52). This class:
-  *
-  *  1. Provisions that attribute + its terms in code on `init`, so a fresh
-  *     environment never needs a manual "add attribute" step in wp-admin —
-  *     consistent with the project's constants/code-first conventions. This
-  *     only ever inserts rows the first time they're missing; safe to run
-- *     on every request.
-+ *     on every request. It also prunes any retired terms (see
-+ *     prune_retired_terms()) left over from the old 32–56 range or the
-+ *     removed custom-order flow.
-  *  2. Provides `is_sized_product()` / `get_size_options()` so templates
-  *     don't need to know taxonomy internals.
-  *  3. Exposes POST /wp-json/negarin/v1/size-select/add-to-cart, the AJAX
-- *     endpoint the size-select modal posts a chosen variation to. A
-- *     dedicated endpoint (rather than WooCommerce's generic
-- *     `?wc-ajax=add_to_cart`) keeps the request/response shape identical
-- *     to Services/CustomOrder.php's own endpoint, so assets/js/toast.js
-- *     only has to understand one JSON shape.
-+ *     endpoint the size-select modal posts a chosen variation to.
-+ *
-+ * Per the 2026-09 decision, the store doesn't do inventory management:
-+ * there's no "سفارش شخصی" (custom order) fallback anymore, and every size
-+ * a product has a variation for is selectable regardless of that
-+ * variation's own stock fields — see ensure_no_stock_management().
-  *
-  * @package Negarin
-  */
-@@ -40,26 +43,12 @@ class ProductSizing {
-      */
-     public const ATTRIBUTE_SLUG = 'size';
+         $cart_item_key = WC()->cart->add_to_cart( $product_id, 1, $variation_id, $variation_attributes );
  
--    /**
--     * WooCommerce refuses to add a variable product to the cart without a
--     * real variation_id — there's no way around that (it's a hard check in
--     * WC_Cart::add_to_cart(), not filterable). A custom order has no actual
--     * size, so it needs its own dedicated, hidden variation to attach the
--     * measurements to. This is that variation's reserved attribute term.
--     * get_size_options() filters it out of the customer-facing button grid;
--     * get_or_create_custom_order_variation() lazily creates the matching
--     * WC_Product_Variation the first time a given product receives a
--     * custom order.
--     */
--    public const CUSTOM_ORDER_TERM_SLUG = 'custom-order';
--    private const CUSTOM_ORDER_TERM_NAME = 'سفارش شخصی';
--
-     /**
-      * The store's full standard size run. Sizes not relevant to a given
-      * product simply aren't added as terms on that product — this is just
-      * the universe of terms the attribute can ever contain.
-      */
--    private const STANDARD_SIZES = array( 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56 );
-+    private const STANDARD_SIZES = array( 38, 40, 42, 44, 46, 48, 50, 52 );
- 
-     public function __construct() {
-         // Priority 0: runs before WC_Post_Types::register_taxonomies() (priority 5),
-@@ -120,12 +109,49 @@ class ProductSizing {
-             }
-         }
- 
--        if ( ! term_exists( self::CUSTOM_ORDER_TERM_SLUG, $taxonomy ) ) {
--            wp_insert_term(
--                self::CUSTOM_ORDER_TERM_NAME,
--                $taxonomy,
--                array( 'slug' => self::CUSTOM_ORDER_TERM_SLUG )
--            );
-+        $this->prune_retired_terms( $taxonomy );
-+    }
-+
-+    /**
-+     * Removes pa_size terms that are no longer part of the store's size
-+     * range — the old 32/34/36/54/56 sizes dropped when the run narrowed
-+     * to 38–52, and the legacy "سفارش شخصی" term from before the custom
-+     * order flow was removed. A term still assigned to a product's
-+     * attribute list is left alone (and logged) rather than force-deleted,
-+     * since that would silently drop that product's declared size option;
-+     * that cleanup is a manual wp-admin edit.
-+     */
-+    private function prune_retired_terms( string $taxonomy ): void {
-+        $keep  = array_map( 'strval', self::STANDARD_SIZES );
-+        $terms = get_terms(
-+            array(
-+                'taxonomy'   => $taxonomy,
-+                'hide_empty' => false,
-+            )
-+        );
-+
-+        if ( is_wp_error( $terms ) ) {
-+            return;
-+        }
-+
-+        foreach ( $terms as $term ) {
-+            if ( in_array( $term->name, $keep, true ) ) {
-+                continue;
-+            }
-+
-+            if ( (int) $term->count > 0 ) {
-+                error_log(
-+                    sprintf(
-+                        'Negarin: retired pa_size term "%s" (slug: %s) is still assigned to %d product(s) — remove it from those products in wp-admin before it can be deleted.',
-+                        $term->name,
-+                        $term->slug,
-+                        $term->count
-+                    )
-+                );
-+                continue;
-+            }
-+
-+            wp_delete_term( $term->term_id, $taxonomy );
-         }
-     }
- 
-@@ -148,10 +174,12 @@ class ProductSizing {
- 
-     /**
-      * Everything the size-select modal needs, already resolved server-side:
--     * every size term the product carries (in store order), whether each
--     * one currently has an in-stock, purchasable variation, and that
--     * variation's ID (0 when out of stock — the button is shown, struck
--     * through, but not selectable, matching the Figma export).
-+     * every size term the product carries (in store order), and that
-+     * size's variation ID (0 when the product has no variation for it yet
-+     * — the button is shown, struck through, but not selectable). The
-+     * store doesn't manage inventory, so "in_stock" here just means "a
-+     * variation exists for this size" — it no longer reflects that
-+     * variation's own stock fields.
-      *
-      * @return array<int, array{term_id:int, slug:string, label:string, variation_id:int, in_stock:bool}>
-      */
-@@ -163,39 +191,72 @@ class ProductSizing {
-             return array();
-         }
- 
--        $terms = array_filter( $terms, static fn( $term ) => self::CUSTOM_ORDER_TERM_SLUG !== $term->slug );
--
-         usort( $terms, static fn( $a, $b ) => (int) $a->name <=> (int) $b->name );
- 
--        $variations = $product->get_available_variations();
--        // Map "size term slug" -> the first matching in-stock variation.
-+        // Read straight off the product's own children rather than
-+        // get_available_variations() — that method hides a variation
-+        // entirely when WooCommerce's "hide out of stock items" catalog
-+        // setting is on, which would make an out-of-stock size disappear
-+        // instead of just being selectable like every other size.
-         $by_slug = array();
--        foreach ( $variations as $variation ) {
--            $slug = $variation['attributes'][ 'attribute_' . $taxonomy ] ?? '';
--            if ( '' === $slug ) {
-+        foreach ( $product->get_children() as $variation_id ) {
-+            $variation = wc_get_product( $variation_id );
-+
-+            if ( ! $variation instanceof \WC_Product_Variation || 'publish' !== $variation->get_status() ) {
-                 continue;
-             }
--            // Prefer an in-stock entry if one exists for this slug; otherwise keep the first.
--            if ( ! isset( $by_slug[ $slug ] ) || ( ! $by_slug[ $slug ]['is_in_stock'] && $variation['is_in_stock'] ) ) {
--                $by_slug[ $slug ] = $variation;
-+
-+            $raw_attributes = $variation->get_attributes(); // Flat ['pa_size' => 'raw-slug'].
-+            $slug           = $raw_attributes[ $taxonomy ] ?? '';
-+
-+            if ( '' === $slug ) {
-+                continue;
-             }
-+
-+            self::ensure_no_stock_management( $variation );
-+            $by_slug[ $slug ] = $variation_id;
-         }
- 
-         $options = array();
-         foreach ( $terms as $term ) {
--            $variation = $by_slug[ $term->slug ] ?? null;
-             $options[] = array(
-                 'term_id'      => $term->term_id,
-                 'slug'         => $term->slug,
-                 'label'        => self::to_persian_digits( $term->name ),
--                'variation_id' => $variation ? (int) $variation['variation_id'] : 0,
--                'in_stock'     => (bool) $variation && (bool) $variation['is_in_stock'],
-+                'variation_id' => $by_slug[ $term->slug ] ?? 0,
-+                'in_stock'     => isset( $by_slug[ $term->slug ] ),
-             );
-         }
- 
-         return $options;
-     }
- 
-+    /**
-+     * Per the 2026-09 decision the store doesn't manage inventory: any
-+     * size the product has a variation for must stay selectable no matter
-+     * what its stock fields say (leftovers from earlier testing, a stray
-+     * admin edit, etc). Rather than trust each variation to already be in
-+     * that state, this normalizes it the first time the variation is
-+     * touched and saves the correction so it sticks.
-+     */
-+    private static function ensure_no_stock_management( \WC_Product_Variation $variation ): void {
-+        $changed = false;
-+
-+        if ( $variation->get_manage_stock() ) {
-+            $variation->set_manage_stock( false );
-+            $changed = true;
-+        }
-+
-+        if ( 'instock' !== $variation->get_stock_status() ) {
-+            $variation->set_stock_status( 'instock' );
-+            $changed = true;
-+        }
-+
-+        if ( $changed ) {
-+            $variation->save();
-+        }
-+    }
-+
-     /**
-      * Term names are stored as plain "32", "34"... (kept ASCII so slug
-      * matching against variation attributes stays simple) but the Figma
-@@ -219,62 +280,6 @@ class ProductSizing {
-         );
-     }
- 
--    /**
--     * The hidden variation Services/CustomOrder.php attaches measurements
--     * to. Created the first time a given product receives a custom order,
--     * then reused — never shown in get_size_options(), never
--     * stock-managed (a custom order is made-to-order, it doesn't draw from
--     * any standard size's stock).
--     */
--    public static function get_or_create_custom_order_variation( \WC_Product_Variable $product ): int {
--        $taxonomy = self::taxonomy();
--        $slug     = self::CUSTOM_ORDER_TERM_SLUG;
--
--        foreach ( $product->get_children() as $variation_id ) {
--            $variation = wc_get_product( $variation_id );
--            if ( $variation instanceof \WC_Product_Variation ) {
--                $raw_attributes = $variation->get_attributes(); // Flat ['pa_size' => 'raw-slug'] — NOT the resolved term name get_attribute() (singular) would return.
--                if ( ( $raw_attributes[ $taxonomy ] ?? '' ) === $slug ) {
--                    return $variation_id;
--                }
--            }
--        }
--
--        $term = get_term_by( 'slug', $slug, $taxonomy );
--
--        if ( ! $term ) {
--            return 0; // Shouldn't happen — ensure_terms_exist() provisions this on every load.
--        }
--
--        // Make sure the term is one of this product's declared attribute
--        // values — WooCommerce only accepts a variation attribute value
--        // that's already listed on the parent.
--        $attributes = $product->get_attributes();
--
--        if ( isset( $attributes[ $taxonomy ] ) ) {
--            $attribute = $attributes[ $taxonomy ];
--            $options   = $attribute->get_options();
--
--            if ( ! in_array( $term->term_id, $options, true ) ) {
--                $options[] = $term->term_id;
--                $attribute->set_options( $options );
--                $attributes[ $taxonomy ] = $attribute;
--                $product->set_attributes( $attributes );
--                $product->save();
--            }
--        }
--
--        $variation = new \WC_Product_Variation();
--        $variation->set_parent_id( $product->get_id() );
--        $variation->set_attributes( array( $taxonomy => $slug ) );
--        $variation->set_regular_price( $product->get_price() ?: $product->get_regular_price() );
--        $variation->set_manage_stock( false );
--        $variation->set_stock_status( 'instock' );
--        $variation->set_status( 'publish' );
--
--        return (int) $variation->save();
--    }
--
-     public function register_routes(): void {
-         register_rest_route(
-             'negarin/v1',
-@@ -304,14 +309,14 @@ class ProductSizing {
-         $match   = null;
- 
-         foreach ( $options as $option ) {
--            if ( $option['variation_id'] === $variation_id ) {
-+            if ( $option['variation_id'] > 0 && $option['variation_id'] === $variation_id ) {
-                 $match = $option;
-                 break;
-             }
-         }
- 
--        if ( ! $match || ! $match['in_stock'] ) {
--            return new WP_Error( 'negarin_size_unavailable', __( 'سایز انتخابی موجود نیست، لطفاً سایز دیگری را انتخاب کنید.', 'negarin' ), array( 'status' => 409 ) );
-+        if ( ! $match ) {
-+            return new WP_Error( 'negarin_size_unavailable', __( 'این سایز برای این محصول تعریف نشده است.', 'negarin' ), array( 'status' => 409 ) );
-         }
- 
-         $variation_attributes = array(
-diff --git a/template-parts/components/custom-order-modal.php b/template-parts/components/custom-order-modal.php
-deleted file mode 100644
-index 99fe408..0000000
---- a/template-parts/components/custom-order-modal.php
-+++ /dev/null
-@@ -1,69 +0,0 @@
--<?php
--/**
-- * "سفارش شخصی" — stacks on top of size-select-modal.php (z-60 over its
-- * z-50) via `customOrderOpen`, which lives on the ancestor x-data in
-- * woocommerce/content-single-product.php. Only ever rendered/opened for a
-- * logged-in shopper — see size-select-modal.php's `goToCustomOrder()` for
-- * the guest redirect-to-login handoff, and Services/CustomOrder.php for
-- * the server-side guard that backs it up.
-- *
-- * Collects exactly four measurements (fixed on purpose, see
-- * Services/CustomOrder.php docblock) and submits over AJAX so a
-- * successful add-to-cart can close this + the size-select modal and show
-- * a toast, instead of reloading the page.
-- *
-- * @package Negarin
-- */
--
--if ( ! defined( 'ABSPATH' ) ) {
--	exit;
--}
--
--use Negarin\Services\CustomOrder;
--
--global $product;
--
--$fields           = CustomOrder::get_measurement_fields();
--$component_state  = wp_json_encode( array( 'productId' => $product->get_id() ) );
--?>
--<div x-show="customOrderOpen" @click.stop x-cloak class="fixed inset-0 z-[60] flex items-end md:items-center justify-center">
--	<div class="absolute inset-0 bg-black/50" @click.stop="customOrderOpen = false;sizeSelectOpen = true" ></div>
--
--	<div
--		x-data="negarinCustomOrder(<?php echo esc_attr( $component_state ); ?>)"
--		class="relative bg-white w-full md:max-w-md max-h-[90vh] overflow-y-auto rounded-t-2xl md:rounded-sm p-6 md:p-8 text-right"
--	>
--		<div class="flex items-center justify-between pb-4 border-b border-negarin-line mb-6">
--			<button @click.stop="customOrderOpen = false;sizeSelectOpen = true" aria-label="<?php esc_attr_e( 'بستن', 'negarin' ); ?>" class="text-2xl leading-none order-1">&times;</button>
--			<h3 class="font-serif text-base md:text-xl order-2"><?php esc_html_e( 'سفارش شخصی', 'negarin' ); ?></h3>
--		</div>
--
--		<div class="space-y-4 mb-6">
--			<?php foreach ( $fields as $field ) : ?>
--				<div>
--					<label class="block text-sm mb-2" for="negarin-measurement-<?php echo esc_attr( $field['key'] ); ?>">
--						<?php echo esc_html( $field['label'] ); ?>
--						<span class="opacity-60">(<?php echo esc_html( $field['unit'] ); ?>)</span>
--					</label>
--					<input
--						type="number"
--						inputmode="decimal"
--						min="1"
--						max="300"
--						step="0.5"
--						id="negarin-measurement-<?php echo esc_attr( $field['key'] ); ?>"
--						class="w-full border border-black/15 rounded-sm px-4 py-3"
--						x-model="measurements.<?php echo esc_attr( $field['key'] ); ?>"
--					>
--				</div>
--			<?php endforeach; ?>
--		</div>
--
--		<p class="text-negarin-red text-sm mb-4" x-show="error" x-text="error"></p>
--
--		<button type="button" class="btn btn--solid w-full" :disabled="loading" @click="submit()">
--			<span x-show="!loading"><?php esc_html_e( 'ثبت و ادامه سفارش', 'negarin' ); ?></span>
--			<span x-show="loading"><?php esc_html_e( 'در حال ثبت...', 'negarin' ); ?></span>
--		</button>
--	</div>
--</div>
-diff --git a/template-parts/components/size-chart-modal.php b/template-parts/components/size-chart-modal.php
-index 5ed42f3..99f4fc4 100644
---- a/template-parts/components/size-chart-modal.php
-+++ b/template-parts/components/size-chart-modal.php
-@@ -2,8 +2,7 @@
- /**
-  * "راهنمای سایز" — stacks on top of size-select-modal.php (z-60 over its
-  * z-50) via `sizeChartOpen`. Closing it just flips that flag back off;
-- * size-select-modal.php stays mounted and open underneath, unaffected —
-- * same nested-modal pattern used by custom-order-modal.php.
-+ * size-select-modal.php stays mounted and open underneath, unaffected.
-  *
-  * Content is a single ACF WYSIWYG field (Theme Options → Sizing Presets →
-  * "محتوای راهنمای سایز") the admin edits in Text/HTML mode to paste a size
-diff --git a/template-parts/components/size-select-button.php b/template-parts/components/size-select-button.php
-index a69ba27..7a4281e 100644
---- a/template-parts/components/size-select-button.php
-+++ b/template-parts/components/size-select-button.php
-@@ -1,7 +1,7 @@
- <?php
- /**
-  * "انتخاب سایز" trigger. Include this inside the single-product
-- * `x-data="{ sizeSelectOpen:false, sizeChartOpen:false, customOrderOpen:false, ... }"`
-+ * `x-data="{ sizeSelectOpen:false, sizeChartOpen:false, ... }"`
-  * wrapper (see woocommerce/content-single-product.php). Renders nothing
-  * for non-sized products — those keep the plain add-to-cart button.
-  *
-diff --git a/template-parts/components/size-select-modal.php b/template-parts/components/size-select-modal.php
-index f581d29..3a95f7b 100644
---- a/template-parts/components/size-select-modal.php
-+++ b/template-parts/components/size-select-modal.php
-@@ -1,17 +1,15 @@
- <?php
- /**
-  * "انتخاب سایز" — template-parts/components/size-select-button.php includes
-- * this right after its trigger button. Two other modals stack on top of
-- * this one at a higher z-index (closing either one reveals this modal
-- * again, unchanged, underneath — same pattern used everywhere else in the
-- * theme for nested modals):
-- *   - size-chart-modal.php   via `sizeChartOpen`   ("راهنمای سایز" link)
-- *   - custom-order-modal.php via `customOrderOpen` ("سفارش شخصی" button)
-+ * this right after its trigger button. One other modal stacks on top of
-+ * this one at a higher z-index (closing it reveals this modal again,
-+ * unchanged, underneath — same pattern used everywhere else in the theme
-+ * for nested modals): size-chart-modal.php via `sizeChartOpen` ("راهنمای
-+ * سایز" link).
-  *
-- * Signed-out shoppers never see the custom-order modal open at all — the
-- * trigger sends them to /my-account/ with a redirect_to back to this exact
-- * product (?open_custom_order=1), which content-single-product.php reads
-- * on load to re-open this flow automatically once they're logged in.
-+ * Per the 2026-09 decision there's no "سفارش شخصی" (custom order)
-+ * fallback anymore — customers pick only from the sizes this product has
-+ * a variation for.
-  *
-  * @package Negarin
-  */
-@@ -21,7 +19,6 @@ if ( ! defined( 'ABSPATH' ) ) {
- }
- 
- use Negarin\Services\ProductSizing;
--use Negarin\Services\CustomOrder;
- 
- global $product;
- 
-@@ -29,21 +26,12 @@ if ( ! $product instanceof WC_Product_Variable ) {
-     return;
- }
- 
--$size_options       = ProductSizing::get_size_options( $product );
--$show_custom_order   = CustomOrder::is_available_for( $product );
--$custom_order_url    = add_query_arg( 'open_custom_order', '1', get_permalink( $product->get_id() ) );
--$login_redirect_url  = add_query_arg(
--        'redirect_to',
--        rawurlencode( $custom_order_url ),
--        wc_get_page_permalink( 'myaccount' )
--);
-+$size_options = ProductSizing::get_size_options( $product );
- 
- $component_state = wp_json_encode(
-         array(
--                'productId'       => $product->get_id(),
--                'options'         => $size_options,
--                'isLoggedIn'      => is_user_logged_in(),
--                'loginRedirectUrl' => $login_redirect_url,
-+                'productId' => $product->get_id(),
-+                'options'   => $size_options,
-         )
- );
- ?>
-@@ -53,7 +41,7 @@ $component_state = wp_json_encode(
-     <div
-             x-data="negarinSizeSelect(<?php echo esc_attr( $component_state ); ?>)"
-             class="relative bg-white w-full md:max-w-2xl max-h-[90vh] overflow-y-auto rounded-t-2xl md:rounded-sm p-6 md:p-8 text-right"
--            @click.outside="if (!sizeChartOpen && !customOrderOpen) sizeSelectOpen = false"
-+            @click.outside="if (!sizeChartOpen) sizeSelectOpen = false"
-     >
- 
-         <div class="flex items-center justify-between pb-4 border-b border-negarin-line mb-6">
-@@ -84,17 +72,6 @@ $component_state = wp_json_encode(
-             </button>
-         </div>
- 
--        <?php if ( $show_custom_order ) : ?>
--            <button
--                    type="button"
--                    class="w-full flex items-center gap-2 bg-[#fffaeb] border border-[#dc6803] text-[#dc6803] rounded text-sm px-4 py-3 mb-6 text-right"
--                    @click="goToCustomOrder()"
--            >
--                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="shrink-0"><circle cx="12" cy="12" r="9" stroke="#DC6803" stroke-width="1.5"/><path d="M12 8v5" stroke="#DC6803" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="16" r="0.9" fill="#DC6803"/></svg>
--                <span><?php esc_html_e( 'درصورت نبود سایز مدنظر، میتوانید از طریق سفارش شخصی اقدام کنید.', 'negarin' ); ?></span>
--            </button>
--        <?php endif; ?>
--
-         <p class="text-negarin-red text-sm mb-4" x-show="error" x-text="error"></p>
- 
-         <div class="flex gap-3">
-@@ -102,16 +79,8 @@ $component_state = wp_json_encode(
-                 <span x-show="!loading"><?php esc_html_e( 'ثبت و ادامه سفارش', 'negarin' ); ?></span>
-                 <span x-show="loading"><?php esc_html_e( 'در حال ثبت...', 'negarin' ); ?></span>
-             </button>
--            <?php if ( $show_custom_order ) : ?>
--                <button type="button" class="btn btn--outline flex-1" @click="goToCustomOrder()">
--                    <?php esc_html_e( 'سفارش شخصی', 'negarin' ); ?>
--                </button>
--            <?php endif; ?>
-         </div>
-     </div>
- 
-     <?php get_template_part( 'template-parts/components/size-chart-modal' ); ?>
--    <?php if ( $show_custom_order ) : ?>
--        <?php get_template_part( 'template-parts/components/custom-order-modal' ); ?>
--    <?php endif; ?>
- </div>
-\ No newline at end of file
-diff --git a/woocommerce/content-single-product.php b/woocommerce/content-single-product.php
-index 68e0064..5088028 100644
---- a/woocommerce/content-single-product.php
-+++ b/woocommerce/content-single-product.php
-@@ -21,10 +21,8 @@ if ( ! is_singular( 'product' ) ) {
- <div
- 	id="product-<?php the_ID(); ?>"
- 	<?php wc_product_class( '', $product ); ?>
--	x-data="{ sizeSelectOpen: false, sizeChartOpen: false, customOrderOpen: false, specsOpen: false, careOpen: false }"
--	@negarin:open-custom-order="customOrderOpen = true"
--	@negarin:cart-added.window="sizeSelectOpen = false; customOrderOpen = false"
--	x-init="if (new URLSearchParams(location.search).get('open_custom_order') === '1') { sizeSelectOpen = true; customOrderOpen = true }"
-+	x-data="{ sizeSelectOpen: false, sizeChartOpen: false, specsOpen: false, careOpen: false }"
-+	@negarin:cart-added.window="sizeSelectOpen = false"
- >
- 
- 	<?php do_action( 'woocommerce_before_single_product' ); ?>
+         if ( ! $cart_item_key ) {
