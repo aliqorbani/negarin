@@ -140,6 +140,52 @@ body {
   border-radius: 0.125rem !important;
 }
 
+/* ---------------------------------------------------------------------
+ * Checkout field style — matches the Figma spec exactly (167:861 mobile /
+ * 162:411 desktop): #e4e7ec border, sharp corners, 54px/48px height.
+ * Apply directly to any <input> or <select>, independent of markup/order.
+ * ------------------------------------------------------------------- */
+.woocommerce form .form-row.woocommerce-validated input.input-text,
+.woocommerce form .form-row.woocommerce-validated select,
+.woocommerce form .form-row .input-text,
+.woocommerce form .form-row select,
+.negarin-field-input input, .negarin-field-input select {
+  @apply block w-full h-[54px] md:h-[48px] border border-negarin-line bg-white px-4 text-base text-[#333];
+  border-radius: 0;
+}
+/*select.negarin-field-input {*/
+/*  appearance: none;*/
+/*  -webkit-appearance: none;*/
+/*  -moz-appearance: none;*/
+/*  cursor: pointer;*/
+/*  padding-left: 2.25rem; !* room for the chevron, which sits on the left in RTL *!*/
+/*  background-repeat: no-repeat;*/
+/*  background-position: left 7px center;*/
+/*  background-size: 20px 20px;*/
+/*  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");*/
+/*}*/
+
+.woocommerce form .form-row-first, .woocommerce form .form-row-last, .woocommerce-page form .form-row-first, .woocommerce-page form .form-row-last{
+  @apply w-full;
+}
+
+.woocommerce form .form-row .optional{
+  @apply hidden;
+}
+
+@media (min-width: 768px) {
+  select.negarin-field-input {
+    background-position: left 13px center;
+  }
+}
+.negarin-field-input:focus {
+  outline: none;
+  border-color: #333;
+}
+.negarin-field-input::placeholder {
+  color: #9a9a9a;
+}
+
 /* Payment method cards (image7): turn WC's plain radio list into bordered
    selectable rows. */
 .woocommerce-checkout ul.wc_payment_methods {

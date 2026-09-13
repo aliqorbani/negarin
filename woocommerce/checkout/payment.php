@@ -16,7 +16,7 @@ if ( ! wp_doing_ajax() ) {
     do_action( 'woocommerce_review_order_before_payment' );
 }
 ?>
-    <div id="payment" class="woocommerce-checkout-payment mt-6">
+    <div id="payment" class="woocommerce-checkout-payment mt-6 bg-white">
         <?php if ( WC()->cart && WC()->cart->needs_payment() ) : ?>
             <ul class="wc_payment_methods payment_methods methods" aria-label="<?php esc_attr_e( 'Payment methods', 'woocommerce' ); ?>">
                 <?php
@@ -54,7 +54,12 @@ if ( ! wp_doing_ajax() ) {
                 <br/><button type="submit" class="btn btn--outline mt-2" name="woocommerce_checkout_update_totals" value="<?php esc_attr_e( 'بروزرسانی مجموع', 'negarin' ); ?>"><?php esc_html_e( 'بروزرسانی مجموع', 'negarin' ); ?></button>
             </noscript>
 
-            <?php wc_get_template( 'checkout/terms.php' ); ?>
+            <!-- No checkout/terms.php here on purpose: Figma has neither a terms
+                 checkbox nor a privacy-policy paragraph in this spot — the
+                 "شرایطی که..." badge/link in the sidebar covers it instead.
+                 woocommerce_checkout_show_terms is also filtered to false in
+                 CheckoutFields.php so the required-terms validation doesn't
+                 block orders now that the checkbox never renders. -->
 
             <?php do_action( 'woocommerce_review_order_before_submit' ); ?>
 

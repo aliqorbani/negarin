@@ -6,34 +6,35 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit;
+    exit;
 }
 $is_bare_login_screen = function_exists( 'is_account_page' )
         && is_account_page()
         && ! is_user_logged_in();
+$is_checkout_page     = function_exists( 'is_checkout' ) && is_checkout();
 get_header();
 ?>
-<main id="main-content" class="container max-w-7xl mx-auto px-4 py-4">
-	<?php
-    while ( have_posts() ) :
-        the_post();
-        ?>
+    <main id="main-content" class="container max-w-7xl mx-auto px-4 py-4">
+        <?php
+        while ( have_posts() ) :
+            the_post();
+            ?>
 
-        <article <?php post_class(); ?>>
+            <article <?php post_class(); ?>>
 
-            <?php if ( ! $is_bare_login_screen ) : ?>
-                <h1 class="font-serif md:text-3xl mb-6 text-center md:text-right font-semibold text-lg">
-                    <?php the_title(); ?>
-                </h1>
-            <?php endif; ?>
+                <?php if ( ! $is_bare_login_screen && ! $is_checkout_page ) : ?>
+                    <h1 class="font-serif md:text-3xl mb-6 text-center md:text-right font-semibold text-lg">
+                        <?php the_title(); ?>
+                    </h1>
+                <?php endif; ?>
 
-            <div class="prose max-w-none leading-8 prose-a:no-underline">
-                <?php the_content(); ?>
-            </div>
+                <div class="prose max-w-none leading-8 prose-a:no-underline">
+                    <?php the_content(); ?>
+                </div>
 
-        </article>
+            </article>
 
-    <?php endwhile; ?>
-</main>
+        <?php endwhile; ?>
+    </main>
 <?php
 get_footer();
