@@ -27,9 +27,11 @@ if ( ! $order ) {
 
 	<?php else : ?>
 
-		<div class="w-16 h-16 rounded-full border-2 border-emerald-500 text-emerald-500 flex items-center justify-center mx-auto mb-6 text-3xl">
-			✓
-		</div>
+		<div class="flex items-center justify-center mx-auto mb-6">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20.0007 32L28.0006 40L44.0006 24M58.6673 32C58.6673 46.7276 46.7282 58.6667 32.0006 58.6667C17.2731 58.6667 5.33398 46.7276 5.33398 32C5.33398 17.2724 17.2731 5.33337 32.0006 5.33337C46.7282 5.33337 58.6673 17.2724 58.6673 32Z" stroke="#17B26A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
 
 		<h1 class="font-serif text-2xl mb-8"><?php esc_html_e( 'نوش تن و جانِ شما :)', 'negarin' ); ?></h1>
 
