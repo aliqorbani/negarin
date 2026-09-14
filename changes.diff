@@ -1,187 +1,121 @@
-diff --git a/template-parts/components/cart-item-card.php b/template-parts/components/cart-item-card.php
-new file mode 100644
-index 0000000..9a07627
---- /dev/null
-+++ b/template-parts/components/cart-item-card.php
-@@ -0,0 +1,89 @@
-+<?php
-+/**
-+ * Mobile cart-page product card — Figma "Cart_mobile" (node 165:422).
-+ *
-+ * Below the `md` breakpoint this replaces the classic <tr> rendered in
-+ * woocommerce/cart/cart.php; both read from the exact same cart item, they're
-+ * just two presentations of it swapped via `hidden`/`md:hidden` so there is
-+ * still only one loop over WC()->cart->get_cart() worth of *logic* to keep in
-+ * sync (the filters below mirror cart.php's <tr> one-for-one).
-+ *
-+ * Expected $args: [ 'cart_item' => array, 'cart_item_key' => string ]
-+ *
-+ * @package Negarin
-+ */
-+
-+if ( ! defined( 'ABSPATH' ) ) {
-+	exit;
-+}
-+
-+$cart_item     = $args['cart_item'] ?? null;
-+$cart_item_key = $args['cart_item_key'] ?? '';
-+
-+if ( ! $cart_item ) {
-+	return;
-+}
-+
-+$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
-+
-+if ( ! $product || ! apply_filters( 'woocommerce_cart_item_visible', true, $cart_item, $cart_item_key ) ) {
-+	return;
-+}
-+
-+$permalink = apply_filters( 'woocommerce_cart_item_permalink', $product->is_visible() ? $product->get_permalink( $cart_item ) : '', $cart_item, $cart_item_key );
-+?>
-+<div class="flex gap-3 border-t border-negarin-line pt-4 pb-4">
-+	<?php if ( $permalink ) : ?>
-+		<a href="<?php echo esc_url( $permalink ); ?>" class="shrink-0 w-[74px] h-[115px] block overflow-hidden">
-+			<?php echo $product->get_image( 'thumbnail', array( 'class' => 'w-full h-full object-cover' ) ); // phpcs:ignore ?>
-+		</a>
-+	<?php endif; ?>
-+
-+	<div class="flex-1 min-w-0 flex flex-col justify-between">
-+		<div>
-+			<div class="flex items-start justify-between gap-2">
-+				<a href="<?php echo esc_url( $permalink ); ?>" class="font-serif font-semibold text-lg text-negarin-gray">
-+					<?php echo wp_kses_post( $product->get_name() ); ?>
-+				</a>
-+				<span class="font-serif font-semibold text-lg text-negarin-gray whitespace-nowrap">
-+					<?php echo apply_filters( 'woocommerce_cart_item_price', WC()->cart->get_product_price( $product ), $cart_item, $cart_item_key ); // phpcs:ignore ?>
-+				</span>
-+			</div>
-+			<?php echo wc_get_formatted_cart_item_data( $cart_item ); // phpcs:ignore ?>
-+		</div>
-+
-+		<div class="flex items-center justify-between">
-+			<?php
-+			if ( $product->is_sold_individually() ) {
-+				echo '<span class="text-sm opacity-70">' . esc_html__( 'تعداد: ۱', 'negarin' ) . '</span>'; // phpcs:ignore
-+			} else {
-+				get_template_part(
-+					'template-parts/components/quantity-stepper',
-+					null,
-+					array(
-+						'product'       => $product,
-+						'cart_item_key' => $cart_item_key,
-+						'quantity'      => $cart_item['quantity'],
-+						'variant'       => 'compact',
-+					)
-+				);
-+			}
-+			?>
-+
-+			<?php
-+			echo apply_filters( // phpcs:ignore
-+				'woocommerce_cart_item_remove_link',
-+				sprintf(
-+					'<a href="%s" class="text-negarin-red shrink-0" aria-label="%s" data-product_id="%s" data-cart_item_key="%s">%s</a>',
-+					esc_url( wc_get_cart_remove_url( $cart_item_key ) ),
-+					esc_attr__( 'حذف از سبد خرید', 'negarin' ),
-+					esc_attr( $product->get_id() ),
-+					esc_attr( $cart_item_key ),
-+					'<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M9 6V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6m2 0v13a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6h10ZM10 10.5v6M14 10.5v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-+				),
-+				$cart_item_key
-+			);
-+			?>
-+		</div>
-+	</div>
-+</div>
-diff --git a/template-parts/components/quantity-stepper.php b/template-parts/components/quantity-stepper.php
-index 47943ce..44bfa1d 100644
---- a/template-parts/components/quantity-stepper.php
-+++ b/template-parts/components/quantity-stepper.php
-@@ -5,7 +5,13 @@
-  * min/max/step rules, and the classic cart's "update_cart" submit flow —
-  * we only add the +/- buttons and auto-submit on change.
-  *
-- * Expected $args: [ 'product' => WC_Product, 'cart_item_key' => string, 'quantity' => int ]
-+ * Expected $args: [
-+ *   'product'       => WC_Product,
-+ *   'cart_item_key' => string,
-+ *   'quantity'      => int,
-+ *   'variant'       => 'default' (gapped buttons, desktop table) | 'compact'
-+ *                       (single bordered box, Figma 165:422 mobile cart card),
-+ * ]
-  *
-  * @package Negarin
-  */
-@@ -17,15 +23,20 @@ if ( ! defined( 'ABSPATH' ) ) {
- $product       = $args['product'] ?? null;
- $cart_item_key = $args['cart_item_key'] ?? '';
- $quantity      = $args['quantity'] ?? 1;
-+$is_compact    = 'compact' === ( $args['variant'] ?? 'default' );
- 
- if ( ! $product ) {
- 	return;
+diff --git a/assets/css/app.css b/assets/css/app.css
+index d76cbfd..1a72758 100644
+--- a/assets/css/app.css
++++ b/assets/css/app.css
+@@ -123,11 +123,6 @@ body {
+ .form-row label {
+   @apply block text-sm mb-2;
  }
- ?>
--<div class="negarin-qty-stepper flex items-center gap-2" x-data="{ qty: <?php echo (int) $quantity; ?> }">
-+<div
-+	class="negarin-qty-stepper inline-flex items-center <?php echo $is_compact ? 'h-[42px] border border-negarin-line divide-x divide-negarin-line' : 'gap-2'; ?>"
-+	<?php echo $is_compact ? 'dir="ltr"' : ''; ?>
-+	x-data="{ qty: <?php echo (int) $quantity; ?> }"
-+>
- 	<button
- 		type="button"
--		class="w-8 h-8 border border-black/15 rounded-sm flex items-center justify-center"
-+		class="<?php echo $is_compact ? 'w-[25px] h-full shrink-0 flex items-center justify-center' : 'w-8 h-8 border border-black/15 rounded-sm flex items-center justify-center'; ?>"
- 		@click="qty = Math.max(1, qty - 1); let el = $el.parentElement.querySelector('.negarin-qty-input'); el.value = qty; el.dispatchEvent(new Event('change', { bubbles: true }))"
- 		aria-label="<?php esc_attr_e( 'کاهش تعداد', 'negarin' ); ?>"
- 	>−</button>
-@@ -35,7 +46,9 @@ if ( ! $product ) {
- 		array(
- 			'input_name'  => "cart[{$cart_item_key}][qty]",
- 			'input_value' => $quantity,
--			'classes'     => array( 'w-12', 'text-center', 'border-0', 'negarin-qty-input' ),
-+			'classes'     => $is_compact
-+				? array( 'w-[30px]', 'h-full', 'shrink-0', 'text-center', 'border-0', 'negarin-qty-input' )
-+				: array( 'w-12', 'text-center', 'border-0', 'negarin-qty-input' ),
- 		),
- 		$product
- 	);
-@@ -43,7 +56,7 @@ if ( ! $product ) {
- 
- 	<button
- 		type="button"
--		class="w-8 h-8 border border-black/15 rounded-sm flex items-center justify-center"
-+		class="<?php echo $is_compact ? 'w-[25px] h-full shrink-0 flex items-center justify-center' : 'w-8 h-8 border border-black/15 rounded-sm flex items-center justify-center'; ?>"
- 		@click="qty = qty + 1; let el = $el.parentElement.querySelector('.negarin-qty-input'); el.value = qty; el.dispatchEvent(new Event('change', { bubbles: true }))"
- 		aria-label="<?php esc_attr_e( 'افزایش تعداد', 'negarin' ); ?>"
- 	>+</button>
-diff --git a/woocommerce/cart/cart.php b/woocommerce/cart/cart.php
-index 6879dbd..4eca499 100644
---- a/woocommerce/cart/cart.php
-+++ b/woocommerce/cart/cart.php
-@@ -29,7 +29,24 @@ do_action( 'woocommerce_before_cart' );
-                 <?php do_action( 'woocommerce_before_cart_table' ); ?>
- 
-                 <div class="order-1">
--                    <div class="overflow-x-auto border border-negarin-line p-5 pb-0">
-+
-+                    <!-- Mobile cart cards — Figma 165:422 "Cart_mobile" -->
-+                    <div class="md:hidden">
-+                        <?php
-+                        foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
-+                            get_template_part(
-+                                    'template-parts/components/cart-item-card',
-+                                    null,
-+                                    array(
-+                                            'cart_item'     => $cart_item,
-+                                            'cart_item_key' => $cart_item_key,
-+                                    )
-+                            );
-+                        }
-+                        ?>
-+                    </div>
-+
-+                    <div class="hidden md:block overflow-x-auto border border-negarin-line p-5 pb-0">
-                         <table class="w-full text-sm text-right mt-0 mb-0">
-                             <thead>
-                             <tr class="bg-[#f0f1f2] text-xs">
+-.form-row input.input-text,
+-.form-row select,
+-.form-row textarea {
+-  @apply w-full border border-black/15 rounded-sm px-4 py-3 bg-white;
+-}
+ .woocommerce-checkout .woocommerce-billing-fields__field-wrapper {
+   @apply grid grid-cols-1 md:grid-cols-2 gap-x-6;
+ }
+@@ -146,24 +141,24 @@ body {
+  * Apply directly to any <input> or <select>, independent of markup/order.
+  * ------------------------------------------------------------------- */
+ .woocommerce form .form-row.woocommerce-validated input.input-text,
+-.woocommerce form .form-row.woocommerce-validated select,
+-.woocommerce form .form-row .input-text,
++.woocommerce form .form-row input.input-text,
+ .woocommerce form .form-row select,
+-.negarin-field-input input, .negarin-field-input select {
++.negarin-field-input {
+   @apply block w-full h-[54px] md:h-[48px] border border-negarin-line bg-white px-4 text-base text-[#333];
+   border-radius: 0;
+ }
+-/*select.negarin-field-input {*/
+-/*  appearance: none;*/
+-/*  -webkit-appearance: none;*/
+-/*  -moz-appearance: none;*/
+-/*  cursor: pointer;*/
+-/*  padding-left: 2.25rem; !* room for the chevron, which sits on the left in RTL *!*/
+-/*  background-repeat: no-repeat;*/
+-/*  background-position: left 7px center;*/
+-/*  background-size: 20px 20px;*/
+-/*  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");*/
+-/*}*/
++.woocommerce form .form-row select,
++select.negarin-field-input {
++  appearance: none;
++  -webkit-appearance: none;
++  -moz-appearance: none;
++  cursor: pointer;
++  padding-left: 2.25rem; /* room for the chevron, which sits on the left in RTL */
++  background-repeat: no-repeat;
++  background-position: left 7px center;
++  background-size: 20px 20px;
++  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
++}
+
+ .woocommerce form .form-row-first, .woocommerce form .form-row-last, .woocommerce-page form .form-row-first, .woocommerce-page form .form-row-last{
+   @apply w-full;
+@@ -174,6 +169,7 @@ body {
+ }
+
+ @media (min-width: 768px) {
++  .woocommerce form .form-row select,
+   select.negarin-field-input {
+     background-position: left 13px center;
+   }
+@@ -186,16 +182,19 @@ body {
+   color: #9a9a9a;
+ }
+
+-/* Payment method cards (image7): turn WC's plain radio list into bordered
+-   selectable rows. */
+-.woocommerce-checkout ul.wc_payment_methods {
+-  @apply divide-y divide-black/10 border border-black/10 rounded-sm;
++/* Payment method list — reset WooCommerce core's own default styling
++   first (it ships a gray/lavender background + rounded corners on
++   .woocommerce-checkout-payment out of the box), then match Figma
++   164:274: one plain white bordered box, thin dividers between rows,
++   no per-row borders/rounding. */
++.woocommerce-checkout-payment,
++.woocommerce-checkout-payment ul.payment_methods {
++  background: #fff !important;
++  border-radius: 0 !important;
+ }
+-.woocommerce-checkout ul.wc_payment_methods li.wc_payment_method {
+-  @apply px-5 py-4;
+-}
+-.woocommerce-checkout ul.wc_payment_methods label {
+-  @apply flex items-center justify-between cursor-pointer text-sm;
++.woocommerce-checkout ul.wc_payment_methods {
++  @apply divide-y divide-negarin-line border border-negarin-line bg-white;
++  border-radius: 0;
+ }
+ .woocommerce-checkout #place_order {
+   @apply btn btn--solid w-full mt-6;
+@@ -203,6 +202,9 @@ body {
+ .woocommerce-checkout #payment .payment_box {
+   @apply text-xs opacity-70 mt-2;
+ }
++.woocommerce-checkout #payment .payment_box::before {
++  display: none; /* kills WC core's little callout-arrow triangle */
++}
+
+ /* ---------------------------------------------------------------------
+  * Thank-you page (image11)
+diff --git a/inc/services/CheckoutFields.php b/inc/services/CheckoutFields.php
+index ea54964..4082cee 100644
+--- a/inc/services/CheckoutFields.php
++++ b/inc/services/CheckoutFields.php
+@@ -26,6 +26,14 @@ class CheckoutFields {
+         add_filter( 'woocommerce_cart_needs_shipping_address', '__return_false' );
+         add_filter( 'woocommerce_order_button_text', array( $this, 'order_button_text' ) );
+         add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'save_extra_address_fields' ) );
++        // The design has no terms checkbox — the "شرایطی که..." badge/link next
++        // to the place-order button covers it instead. This filter both hides
++        // checkout/terms.php AND removes the "please accept the terms" required
++        // validation. IMPORTANT: payment.php no longer calls checkout/terms.php
++        // at all, so without this filter WooCommerce still requires $_POST['terms']
++        // on submit and every order gets rejected with a "please accept the terms"
++        // error, since there's no checkbox left to check.
++        add_filter( 'woocommerce_checkout_show_terms', '__return_false' );
+     }
+
+     /**

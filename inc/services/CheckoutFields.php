@@ -26,6 +26,14 @@ class CheckoutFields {
         add_filter( 'woocommerce_cart_needs_shipping_address', '__return_false' );
         add_filter( 'woocommerce_order_button_text', array( $this, 'order_button_text' ) );
         add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'save_extra_address_fields' ) );
+        // The design has no terms checkbox — the "شرایطی که..." badge/link next
+        // to the place-order button covers it instead. This filter both hides
+        // checkout/terms.php AND removes the "please accept the terms" required
+        // validation. IMPORTANT: payment.php no longer calls checkout/terms.php
+        // at all, so without this filter WooCommerce still requires $_POST['terms']
+        // on submit and every order gets rejected with a "please accept the terms"
+        // error, since there's no checkbox left to check.
+        add_filter( 'woocommerce_checkout_show_terms', '__return_false' );
     }
 
     /**

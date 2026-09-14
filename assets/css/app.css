@@ -123,11 +123,6 @@ body {
 .form-row label {
   @apply block text-sm mb-2;
 }
-.form-row input.input-text,
-.form-row select,
-.form-row textarea {
-  @apply w-full border border-black/15 rounded-sm px-4 py-3 bg-white;
-}
 .woocommerce-checkout .woocommerce-billing-fields__field-wrapper {
   @apply grid grid-cols-1 md:grid-cols-2 gap-x-6;
 }
@@ -146,24 +141,24 @@ body {
  * Apply directly to any <input> or <select>, independent of markup/order.
  * ------------------------------------------------------------------- */
 .woocommerce form .form-row.woocommerce-validated input.input-text,
-.woocommerce form .form-row.woocommerce-validated select,
-.woocommerce form .form-row .input-text,
+.woocommerce form .form-row input.input-text,
 .woocommerce form .form-row select,
-.negarin-field-input input, .negarin-field-input select {
+.negarin-field-input {
   @apply block w-full h-[54px] md:h-[48px] border border-negarin-line bg-white px-4 text-base text-[#333];
   border-radius: 0;
 }
-/*select.negarin-field-input {*/
-/*  appearance: none;*/
-/*  -webkit-appearance: none;*/
-/*  -moz-appearance: none;*/
-/*  cursor: pointer;*/
-/*  padding-left: 2.25rem; !* room for the chevron, which sits on the left in RTL *!*/
-/*  background-repeat: no-repeat;*/
-/*  background-position: left 7px center;*/
-/*  background-size: 20px 20px;*/
-/*  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");*/
-/*}*/
+.woocommerce form .form-row select,
+select.negarin-field-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  padding-left: 2.25rem; /* room for the chevron, which sits on the left in RTL */
+  background-repeat: no-repeat;
+  background-position: left 7px center;
+  background-size: 20px 20px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
 
 .woocommerce form .form-row-first, .woocommerce form .form-row-last, .woocommerce-page form .form-row-first, .woocommerce-page form .form-row-last{
   @apply w-full;
@@ -174,6 +169,7 @@ body {
 }
 
 @media (min-width: 768px) {
+  .woocommerce form .form-row select,
   select.negarin-field-input {
     background-position: left 13px center;
   }
@@ -186,22 +182,28 @@ body {
   color: #9a9a9a;
 }
 
-/* Payment method cards (image7): turn WC's plain radio list into bordered
-   selectable rows. */
+/* Payment method list — reset WooCommerce core's own default styling
+   first (it ships a gray/lavender background + rounded corners on
+   .woocommerce-checkout-payment out of the box), then match Figma
+   164:274: one plain white bordered box, thin dividers between rows,
+   no per-row borders/rounding. */
+.woocommerce-checkout-payment,
+.woocommerce-checkout-payment ul.payment_methods {
+  background: #fff !important;
+  border-radius: 0 !important;
+}
 .woocommerce-checkout ul.wc_payment_methods {
-  @apply divide-y divide-black/10 border border-black/10 rounded-sm;
-}
-.woocommerce-checkout ul.wc_payment_methods li.wc_payment_method {
-  @apply px-5 py-4;
-}
-.woocommerce-checkout ul.wc_payment_methods label {
-  @apply flex items-center justify-between cursor-pointer text-sm;
+  @apply divide-y divide-negarin-line border border-negarin-line bg-white;
+  border-radius: 0;
 }
 .woocommerce-checkout #place_order {
   @apply btn btn--solid w-full mt-6;
 }
 .woocommerce-checkout #payment .payment_box {
   @apply text-xs opacity-70 mt-2;
+}
+.woocommerce-checkout #payment .payment_box::before {
+  display: none; /* kills WC core's little callout-arrow triangle */
 }
 
 /* ---------------------------------------------------------------------
