@@ -33,14 +33,14 @@ if ( ! $order ) {
             </svg>
         </div>
 
-		<h1 class="font-serif text-2xl mb-8"><?php esc_html_e( 'نوش تن و جانِ شما :)', 'negarin' ); ?></h1>
+		<h1 class="font-serif text-2xl mb-8"><?php esc_html_e( 'نوش تن و جانِ شما ', 'negarin' ); ?> :‌)</h1>
 
 		<div class="flex items-center justify-center gap-3 mb-10">
 			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="btn btn--outline"><?php esc_html_e( 'بازگشت به صفحه اصلی', 'negarin' ); ?></a>
 			<a href="<?php echo esc_url( $order->get_view_order_url() ); ?>" class="btn btn--solid"><?php esc_html_e( 'پیگیری سفارش', 'negarin' ); ?></a>
 		</div>
 
-		<?php do_action( 'woocommerce_thankyou', $order->get_id() ); ?>
+		<?php //do_action( 'woocommerce_thankyou', $order->get_id() ); ?>
 
 	<?php endif; ?>
 
