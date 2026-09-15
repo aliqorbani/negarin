@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $message_status = isset( $_GET['negarin_msg'] ) ? sanitize_key( wp_unslash( $_GET['negarin_msg'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 ?>
-<footer class="negarin-footer bg-white mt-16 pt-16 pb-10 text-center">
+<footer class="negarin-footer bg-white mt-16 pt-16 pb-10 text-center relative">
 	<div class="max-w-lg mx-auto px-4">
 
 		<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="inline-block mb-8">
@@ -99,6 +99,6 @@ $message_status = isset( $_GET['negarin_msg'] ) ? sanitize_key( wp_unslash( $_GE
 		<p class="text-xs opacity-0">
 			&copy; <?php echo esc_html( gmdate( 'Y' ) ); ?> <?php bloginfo( 'name' ); ?> — <?php esc_html_e( 'تمامی حقوق محفوظ است.', 'negarin' ); ?>
 		</p>
-
+        <a style="position:absolute; right:0; bottom:0" referrerpolicy='origin' target='_blank' href='https://trustseal.enamad.ir/?id=7620962&Code=F87Th2LK8J7XmMhIT1DESMn2J5jX998Z'><img referrerpolicy='origin' src='https://trustseal.enamad.ir/logo.aspx?id=7620962&Code=F87Th2LK8J7XmMhIT1DESMn2J5jX998Z' alt='' style='cursor:pointer' code='F87Th2LK8J7XmMhIT1DESMn2J5jX998Z'></a>
 	</div>
 </footer>
