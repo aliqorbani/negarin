@@ -149,3 +149,9 @@ add_filter(
     10,
     2
 );
+
+add_filter('woocommerce_save_account_details_required_fields', function ($required_fields) {
+    unset($required_fields['account_display_name']);
+
+    return $required_fields;
+});

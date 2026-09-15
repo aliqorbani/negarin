@@ -59,8 +59,8 @@ $last_endpoint = array_key_last( $menu_items );
             $is_active = is_account_page() && is_wc_endpoint_url( $endpoint );
             $is_last   = $endpoint === $last_endpoint;
 
-            $row_classes   = array( 'flex', 'items-center', 'justify-between', 'h-[54px]', 'md:h-12', 'text-sm' );
-            $row_classes[] = $is_active ? 'md:bg-[#f0f1f2] font-medium' : 'opacity-70';
+            $row_classes   = array( 'flex', 'items-center', 'justify-between', 'h-[54px]', 'md:h-12', 'exclude-spa' );
+            $row_classes[] = $is_active ? 'md:bg-negarin-cream font-medium' : 'opacity-85';
             if ( ! $is_last ) {
                 $row_classes[] = 'max-md:border-b max-md:border-[#e4e7ec]';
             }
@@ -70,10 +70,10 @@ $last_endpoint = array_key_last( $menu_items );
                     class="<?php echo esc_attr( implode( ' ', $row_classes ) ); ?>"
             >
 				<span class="flex items-center gap-2">
-					<span class="dashicons <?php echo esc_attr( AccountMenu::dashicon_for( $endpoint ) ); ?>"></span>
+					<span class="svg-icon"><?php echo ( AccountMenu::svgicon_for( $endpoint ) ); ?></span>
 					<span><?php echo esc_html( $label ); ?></span>
 					<?php if ( 'orders' === $endpoint && $order_count > 0 ) : ?>
-                        <span class="bg-[#ff383c] text-white text-xs leading-none rounded-full h-4 min-w-[24px] px-1 flex items-center justify-center"><?php echo esc_html( $order_count ); ?></span>
+                        <span class="bg-[#ff383c] text-white text-xs leading-none rounded-full h-4 min-w-[24px] px-1 flex items-center justify-center"><?php echo esc_html( farsi_numbers($order_count) ); ?></span>
                     <?php endif; ?>
 				</span>
                 <svg class="md:hidden shrink-0" width="7" height="12" viewBox="0 0 7 12" fill="none" aria-hidden="true">

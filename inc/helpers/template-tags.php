@@ -196,3 +196,21 @@ function negarin_social_icon(string $social ): string {
     ];
     return $social_icons[ $social ] ?? $social_icons['negarin'];
 }
+
+function farsi_numbers( string $value ): string {
+    return strtr(
+        $value,
+        array(
+            '0' => '۰',
+            '1' => '۱',
+            '2' => '۲',
+            '3' => '۳',
+            '4' => '۴',
+            '5' => '۵',
+            '6' => '۶',
+            '7' => '۷',
+            '8' => '۸',
+            '9' => '۹',
+        )
+    );
+}

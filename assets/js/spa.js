@@ -44,6 +44,7 @@ const TURBO_EXCLUDED_SELECTORS = [
   'a.remove_from_cart_button',
   '.woocommerce-cart-form .remove',
   '.negarin-account-content form',
+  '.exclude-spa'
 ];
 
 function excludeWooCommerceInteractionsFromTurbo() {

@@ -162,6 +162,13 @@ input.negarin-qty-input[type=number]::-webkit-outer-spin-button {
   border-radius: 0.125rem !important;
 }
 
+:where(.woocommerce) .select2-container .select2-dropdown, :where(.woocommerce) .select2-container .select2-selection{
+  @apply border border-negarin-line h-12 rounded-none;
+}
+.select2-container--default[dir=rtl] .select2-selection--single .select2-selection__arrow{
+  @apply left-1;
+}
+
 /* ---------------------------------------------------------------------
  * Checkout field style — matches the Figma spec exactly (167:861 mobile /
  * 162:411 desktop): #e4e7ec border, sharp corners, 54px/48px height.

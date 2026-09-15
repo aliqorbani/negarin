@@ -48,7 +48,7 @@ $status_styles = array(
 		<thead>
 			<tr class="bg-negarin-cream text-xs">
 				<th class="py-3 px-3 font-normal"><?php esc_html_e( 'نام محصول', 'negarin' ); ?></th>
-				<th class="py-3 px-3 font-normal"><?php esc_html_e( 'تاریخ سفارش', 'negarin' ); ?></th>
+				<th class="py-3 px-3 font-normal text-center"><?php esc_html_e( 'تاریخ سفارش', 'negarin' ); ?></th>
 				<th class="py-3 px-3 font-normal"><?php esc_html_e( 'تعداد', 'negarin' ); ?></th>
 				<th class="py-3 px-3 font-normal"><?php esc_html_e( 'وضعیت سفارش', 'negarin' ); ?></th>
 				<th class="py-3 px-3 font-normal"></th>
@@ -59,25 +59,32 @@ $status_styles = array(
 				<?php
 				$items      = $order->get_items();
 				$first_item = reset( $items );
-				$item_count = array_sum( wp_list_pluck( $items, 'quantity' ) );
-				$status     = $status_styles[ $order->get_status() ] ?? array(
+
+                $qty = 0;
+                foreach ($items as $item) {
+                    $qty += (int) $item->get_quantity();
+                }
+                $item_count = $qty;
+                $status     = $status_styles[ $order->get_status() ] ?? array(
 					'label' => wc_get_order_status_name( $order->get_status() ),
 					'class' => 'bg-gray-100 text-gray-600',
 				);
 				?>
 				<tr class="border-b border-black/5">
 					<td class="py-4 px-3"><?php echo $first_item ? esc_html( $first_item->get_name() ) : esc_html__( 'سفارش', 'negarin' ); ?></td>
-					<td class="py-4 px-3" dir="ltr"><?php echo esc_html( wc_format_datetime( $order->get_date_created(), 'Y/m/d' ) ); ?></td>
-					<td class="py-4 px-3"><?php printf( esc_html__( '%d عدد', 'negarin' ), (int) $item_count ); ?></td>
+					<td class="py-4 px-3 text-center" dir="ltr"><?php echo esc_html( wc_format_datetime( $order->get_date_created(), 'Y/m/d' ) ); ?></td>
+					<td class="py-4 px-3"><?php printf( esc_html__( '%d عدد', 'negarin' ), (int) $item_count );
+//                    var_dump($quantities);
+                    ?></td>
 					<td class="py-4 px-3">
 						<span class="inline-block rounded-full px-3 py-1 text-xs <?php echo esc_attr( $status['class'] ); ?>">
 							<?php echo esc_html( $status['label'] ); ?>
 						</span>
 					</td>
 					<td class="py-4 px-3">
-						<a href="<?php echo esc_url( $order->get_view_order_url() ); ?>" class="flex items-center gap-1 text-xs">
-							<span>‹</span>
+						<a href="<?php echo esc_url( $order->get_view_order_url() ); ?>" class="flex items-center gap-1.5">
 							<span><?php esc_html_e( 'مشاهده جزئیات', 'negarin' ); ?></span>
+							<span><svg width="17" height="13" viewBox="0 0 17 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.5 6.5H0.5M6.5 0.5L0.5 6.5L6.5 12.5" stroke="#333333" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
 						</a>
 					</td>
 				</tr>

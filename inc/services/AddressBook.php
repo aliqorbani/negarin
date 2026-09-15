@@ -22,11 +22,22 @@ class AddressBook {
 	public function __construct() {
 		add_action( 'template_redirect', array( $this, 'maybe_clear_address' ) );
 		add_action( 'woocommerce_save_account_details', array( $this, 'save_referral_source' ) );
+		add_action( 'woocommerce_save_account_details', array( $this, 'save_display_name' ) );
 	}
 
 	public static function get_referral_source( int $user_id ): string {
 		return (string) get_user_meta( $user_id, self::REFERRAL_META_KEY, true );
 	}
+
+    public function save_display_name($user_id) {
+        if(isset($_POST['account_first_name']) && !empty($_POST['account_first_name'])) {
+            $display_name = $_POST['account_first_name'];
+            if(isset($_POST['account_last_name']) && !empty($_POST['account_last_name'])) {
+                $display_name .= ' ' . $_POST['account_last_name'];
+                update_user_meta( $user_id, 'account_display_name', sanitize_text_field($display_name) );
+            }
+        }
+    }
 
 	public function save_referral_source( int $user_id ): void {
 		if ( isset( $_POST['negarin_referral_source'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WC's own account-details nonce already guards this action.
