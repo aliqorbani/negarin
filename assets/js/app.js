@@ -10,9 +10,9 @@ import { negarinOtp } from './otp.js';
 import { negarinSizeSelect } from './size-select.js';
 import { negarinSearch } from './search.js';
 import { negarinToastStore } from './toast.js';
+import { negarinCheckoutForm } from './checkout.js';
 import './ajax-cart.js';
 import './cart.js';
-import './checkout.js';
 import './header-offset.js';
 
 window.Alpine = Alpine;
@@ -20,4 +20,5 @@ Alpine.store('toast', negarinToastStore());
 Alpine.data('negarinOtp', negarinOtp);
 Alpine.data('negarinSizeSelect', negarinSizeSelect);
 Alpine.data('negarinSearch', negarinSearch);
+Alpine.data('negarinCheckoutForm', negarinCheckoutForm);
 Alpine.start();

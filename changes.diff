@@ -1,121 +1,199 @@
 diff --git a/assets/css/app.css b/assets/css/app.css
-index d76cbfd..1a72758 100644
+index 1a72758..77657bc 100644
 --- a/assets/css/app.css
 +++ b/assets/css/app.css
-@@ -123,11 +123,6 @@ body {
- .form-row label {
-   @apply block text-sm mb-2;
- }
--.form-row input.input-text,
--.form-row select,
--.form-row textarea {
--  @apply w-full border border-black/15 rounded-sm px-4 py-3 bg-white;
--}
- .woocommerce-checkout .woocommerce-billing-fields__field-wrapper {
-   @apply grid grid-cols-1 md:grid-cols-2 gap-x-6;
- }
-@@ -146,24 +141,24 @@ body {
-  * Apply directly to any <input> or <select>, independent of markup/order.
-  * ------------------------------------------------------------------- */
- .woocommerce form .form-row.woocommerce-validated input.input-text,
--.woocommerce form .form-row.woocommerce-validated select,
--.woocommerce form .form-row .input-text,
-+.woocommerce form .form-row input.input-text,
- .woocommerce form .form-row select,
--.negarin-field-input input, .negarin-field-input select {
-+.negarin-field-input {
-   @apply block w-full h-[54px] md:h-[48px] border border-negarin-line bg-white px-4 text-base text-[#333];
-   border-radius: 0;
- }
--/*select.negarin-field-input {*/
--/*  appearance: none;*/
--/*  -webkit-appearance: none;*/
--/*  -moz-appearance: none;*/
--/*  cursor: pointer;*/
--/*  padding-left: 2.25rem; !* room for the chevron, which sits on the left in RTL *!*/
--/*  background-repeat: no-repeat;*/
--/*  background-position: left 7px center;*/
--/*  background-size: 20px 20px;*/
--/*  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");*/
--/*}*/
-+.woocommerce form .form-row select,
-+select.negarin-field-input {
-+  appearance: none;
-+  -webkit-appearance: none;
-+  -moz-appearance: none;
-+  cursor: pointer;
-+  padding-left: 2.25rem; /* room for the chevron, which sits on the left in RTL */
-+  background-repeat: no-repeat;
-+  background-position: left 7px center;
-+  background-size: 20px 20px;
-+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-+}
-
- .woocommerce form .form-row-first, .woocommerce form .form-row-last, .woocommerce-page form .form-row-first, .woocommerce-page form .form-row-last{
-   @apply w-full;
-@@ -174,6 +169,7 @@ body {
- }
-
- @media (min-width: 768px) {
-+  .woocommerce form .form-row select,
-   select.negarin-field-input {
-     background-position: left 13px center;
-   }
-@@ -186,16 +182,19 @@ body {
+@@ -182,6 +182,37 @@ select.negarin-field-input {
    color: #9a9a9a;
  }
 
--/* Payment method cards (image7): turn WC's plain radio list into bordered
--   selectable rows. */
--.woocommerce-checkout ul.wc_payment_methods {
--  @apply divide-y divide-black/10 border border-black/10 rounded-sm;
-+/* Payment method list — reset WooCommerce core's own default styling
-+   first (it ships a gray/lavender background + rounded corners on
-+   .woocommerce-checkout-payment out of the box), then match Figma
-+   164:274: one plain white bordered box, thin dividers between rows,
-+   no per-row borders/rounding. */
-+.woocommerce-checkout-payment,
-+.woocommerce-checkout-payment ul.payment_methods {
-+  background: #fff !important;
-+  border-radius: 0 !important;
- }
--.woocommerce-checkout ul.wc_payment_methods li.wc_payment_method {
--  @apply px-5 py-4;
--}
--.woocommerce-checkout ul.wc_payment_methods label {
--  @apply flex items-center justify-between cursor-pointer text-sm;
-+.woocommerce-checkout ul.wc_payment_methods {
-+  @apply divide-y divide-negarin-line border border-negarin-line bg-white;
-+  border-radius: 0;
- }
- .woocommerce-checkout #place_order {
-   @apply btn btn--solid w-full mt-6;
-@@ -203,6 +202,9 @@ body {
- .woocommerce-checkout #payment .payment_box {
-   @apply text-xs opacity-70 mt-2;
- }
-+.woocommerce-checkout #payment .payment_box::before {
-+  display: none; /* kills WC core's little callout-arrow triangle */
++/* Client-side required-field check on the step 1 -> 2 "continue" button
++   (see form-checkout.php's goToPayment()). Mirrors what a failed server
++   round-trip already looks like: red border + a short message under the
++   field. The message is generic on purpose (no per-field wording needed
++   client-side) — server-side errors still show the specific WooCommerce
++   text via the toast bridge in checkout.js. */
++.form-row.negarin-field-error input.input-text,
++.form-row.negarin-field-error select,
++.form-row.negarin-field-error .negarin-field-input {
++  border-color: #dc2626 !important;
 +}
-
- /* ---------------------------------------------------------------------
-  * Thank-you page (image11)
++.form-row.negarin-field-error::after {
++  content: 'این گزینه الزامی است.';
++  display: block;
++  margin-top: 0.375rem;
++  font-size: 0.75rem;
++  color: #dc2626;
++}
++
++/* The whole site replaced WooCommerce's default notice boxes with toasts
++   (inc/hooks/notices.php + assets/js/toast.js). Checkout's AJAX error path
++   is a separate WC code path bridged into that same pipeline in
++   assets/js/checkout.js; this is just a defensive backstop so the default
++   box never visibly flashes if that JS is ever slow to run or fails. */
++.woocommerce-checkout .woocommerce-NoticeGroup,
++.woocommerce-checkout .woocommerce-error,
++.woocommerce-checkout .woocommerce-message,
++.woocommerce-checkout .woocommerce-info {
++  display: none !important;
++}
++
+ /* Payment method list — reset WooCommerce core's own default styling
+    first (it ships a gray/lavender background + rounded corners on
+    .woocommerce-checkout-payment out of the box), then match Figma
+diff --git a/assets/js/checkout.js b/assets/js/checkout.js
+index b778d33..3ca6c4f 100644
+--- a/assets/js/checkout.js
++++ b/assets/js/checkout.js
+@@ -19,3 +19,73 @@ document.addEventListener('DOMContentLoaded', () => {
+     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+   });
+ });
++
++/**
++ * Route checkout validation errors through the same toast pipeline as
++ * every other WooCommerce notice (see inc/hooks/notices.php + toast.js)
++ * instead of WooCommerce's own default `.woocommerce-error` alert box,
++ * which checkout.js inserts directly into the DOM on AJAX failure — a
++ * different code path than the hidden-container one the rest of the
++ * site already uses, so it needs its own bridge here.
++ */
++document.addEventListener('DOMContentLoaded', () => {
++  if (!window.jQuery) return;
++
++  jQuery(document.body).on('checkout_error', () => {
++    const noticeBox = document.querySelector('.woocommerce-NoticeGroup-checkout');
++    const target = document.getElementById('negarin-wc-notices');
++    if (!noticeBox || !target) return;
++
++    target.innerHTML = noticeBox.innerHTML;
++    noticeBox.remove();
++    document.dispatchEvent(new CustomEvent('negarin:fragments-updated'));
++  });
++});
++
++/**
++ * Clears the red "required" highlight from goToPayment() (form-checkout.php)
++ * as soon as the shopper actually fills the field in, instead of leaving it
++ * red until the next click on "continue".
++ */
++document.addEventListener('DOMContentLoaded', () => {
++  const container = document.getElementById('customer_details');
++  if (!container) return;
++
++  const clearIfFilled = (e) => {
++    const row = e.target.closest && e.target.closest('.form-row.negarin-field-error');
++    if (row && e.target.value && String(e.target.value).trim()) {
++      row.classList.remove('negarin-field-error');
++    }
++  };
++
++  container.addEventListener('input', clearIfFilled);
++  container.addEventListener('change', clearIfFilled);
++});
++
++/**
++ * Figma puts the place-order button in the sidebar for both steps (step 1's
++ * button is the Alpine "continue" one right above this slot; step 2's is
++ * WooCommerce's own #place_order). WooCommerce renders #place_order inside
++ * #order_review though, so we physically move it into the sidebar slot —
++ * moving rather than cloning keeps checkout.js's delegated event handling
++ * intact, since it listens on the form, not the button itself. Re-run on
++ * every `updated_checkout` because WooCommerce replaces #order_review's
++ * entire markup (place-order div included) on every totals/gateway change.
++ */
++function negarinRelocatePlaceOrder() {
++  const slot = document.getElementById('negarin-place-order-slot');
++  const placeOrderRow = document.querySelector('#order_review .place-order');
++  if (!slot || !placeOrderRow) return;
++  if (placeOrderRow.parentElement === slot) return; // already in place
++
++  // WooCommerce re-renders a brand new .place-order div inside #order_review
++  // on every `updated_checkout` refresh (shipping method, coupon, gateway
++  // change, etc.) — the previously-moved one is now stale, so clear it out
++  // before moving the fresh one in, or they'd pile up.
++  slot.innerHTML = '';
++  slot.appendChild(placeOrderRow);
++}
++document.addEventListener('DOMContentLoaded', negarinRelocatePlaceOrder);
++document.addEventListener('DOMContentLoaded', () => {
++  window.jQuery && jQuery(document.body).on('updated_checkout', negarinRelocatePlaceOrder);
++});
 diff --git a/inc/services/CheckoutFields.php b/inc/services/CheckoutFields.php
-index ea54964..4082cee 100644
+index 4082cee..4963b4e 100644
 --- a/inc/services/CheckoutFields.php
 +++ b/inc/services/CheckoutFields.php
-@@ -26,6 +26,14 @@ class CheckoutFields {
-         add_filter( 'woocommerce_cart_needs_shipping_address', '__return_false' );
-         add_filter( 'woocommerce_order_button_text', array( $this, 'order_button_text' ) );
-         add_action( 'woocommerce_checkout_update_order_meta', array( $this, 'save_extra_address_fields' ) );
-+        // The design has no terms checkbox — the "شرایطی که..." badge/link next
-+        // to the place-order button covers it instead. This filter both hides
-+        // checkout/terms.php AND removes the "please accept the terms" required
-+        // validation. IMPORTANT: payment.php no longer calls checkout/terms.php
-+        // at all, so without this filter WooCommerce still requires $_POST['terms']
-+        // on submit and every order gets rejected with a "please accept the terms"
-+        // error, since there's no checkbox left to check.
-+        add_filter( 'woocommerce_checkout_show_terms', '__return_false' );
+@@ -34,6 +34,18 @@ class CheckoutFields {
+         // on submit and every order gets rejected with a "please accept the terms"
+         // error, since there's no checkbox left to check.
+         add_filter( 'woocommerce_checkout_show_terms', '__return_false' );
++        // WooCommerce's own required-field validation prefixes messages with
++        // the fieldset name ("Billing" / "صورتحساب") to disambiguate from a
++        // shipping-address counterpart. We only ever collect one address, so
++        // that prefix is just confusing noise here — strip it from the
++        // final error text rather than guess at overriding WC's internal
++        // message-building logic.
++        add_filter(
++            'woocommerce_add_error',
++            function ( $message ) {
++                return str_replace( array( 'صورتحساب ', 'Billing ' ), '', $message );
++            }
++        );
      }
 
      /**
+diff --git a/woocommerce/checkout/form-checkout.php b/woocommerce/checkout/form-checkout.php
+index da6065e..4cb3b01 100644
+--- a/woocommerce/checkout/form-checkout.php
++++ b/woocommerce/checkout/form-checkout.php
+@@ -27,7 +27,31 @@ if ( ! is_ajax() ) {
+ ?>
+
+     <div class="container max-w-7xl mx-auto px-4 pt-8">
+-    <form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data" x-data="{ step: 1 }">
++    <form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data" x-data="{
++        step: 1,
++        goToPayment() {
++            // WooCommerce marks a required field by adding the
++            // 'validate-required' class to the wrapping .form-row — not
++            // the native HTML `required` attribute — so that's the signal
++            // to check here, same as WooCommerce's own validation.js does.
++            const rows = document.querySelectorAll( '#customer_details .form-row.validate-required' );
++            let firstInvalid = null;
++            rows.forEach( ( row ) => {
++                const field = row.querySelector( 'input, select, textarea' );
++                if ( ! field ) return;
++                const empty = ! field.value || ! String( field.value ).trim();
++                row.classList.toggle( 'negarin-field-error', empty );
++                if ( empty && ! firstInvalid ) firstInvalid = field;
++            } );
++            if ( firstInvalid ) {
++                firstInvalid.focus();
++                firstInvalid.closest( '.form-row' ).scrollIntoView( { behavior: 'smooth', block: 'center' } );
++                return;
++            }
++            window.jQuery && jQuery( document.body ).trigger( 'update_checkout' );
++            this.step = 2;
++        },
++    }">
+
+         <?php if ( $checkout->get_checkout_fields() ) : ?>
+             <?php do_action( 'woocommerce_checkout_before_customer_details' ); ?>
+@@ -63,10 +87,16 @@ if ( ! is_ajax() ) {
+
+                         <?php wc_get_template( 'checkout/form-coupon.php' ); ?>
+
+-                        <button type="button" x-show="step === 1" class="btn btn--solid w-full" @click="window.jQuery && jQuery(document.body).trigger('update_checkout'); step = 2">
++                        <button type="button" x-show="step === 1" class="btn btn--solid w-full" @click="goToPayment()">
+                             <?php esc_html_e( 'تایید و ادامه', 'negarin' ); ?>
+                         </button>
+-                        <!-- Step 2's real submit button is WooCommerce's own #place_order, rendered inside woocommerce_checkout_payment via checkout/payment.php -->
++                        <!-- Step 2's real submit button is WooCommerce's own #place_order,
++                             rendered inside woocommerce_checkout_payment via checkout/payment.php.
++                             assets/js/checkout.js physically moves it here (Figma has the
++                             button in the sidebar for both steps) and re-runs that move after
++                             every `updated_checkout` AJAX refresh, since WooCommerce replaces
++                             #order_review's whole markup on every totals/gateway change. -->
++                        <div id="negarin-place-order-slot" x-show="step === 2" x-cloak></div>
+                     </div>
+
+                     <?php

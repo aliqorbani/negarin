@@ -27,7 +27,7 @@ if ( ! is_ajax() ) {
 ?>
 
     <div class="container max-w-7xl mx-auto px-4 pt-8">
-    <form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data" x-data="{ step: 1 }">
+    <form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data" x-data="negarinCheckoutForm">
 
         <?php if ( $checkout->get_checkout_fields() ) : ?>
             <?php do_action( 'woocommerce_checkout_before_customer_details' ); ?>
@@ -63,10 +63,16 @@ if ( ! is_ajax() ) {
 
                         <?php wc_get_template( 'checkout/form-coupon.php' ); ?>
 
-                        <button type="button" x-show="step === 1" class="btn btn--solid w-full" @click="window.jQuery && jQuery(document.body).trigger('update_checkout'); step = 2">
+                        <button type="button" x-show="step === 1" class="btn btn--solid w-full" @click="goToPayment()">
                             <?php esc_html_e( 'تایید و ادامه', 'negarin' ); ?>
                         </button>
-                        <!-- Step 2's real submit button is WooCommerce's own #place_order, rendered inside woocommerce_checkout_payment via checkout/payment.php -->
+                        <!-- Step 2's real submit button is WooCommerce's own #place_order,
+                             rendered inside woocommerce_checkout_payment via checkout/payment.php.
+                             assets/js/checkout.js physically moves it here (Figma has the
+                             button in the sidebar for both steps) and re-runs that move after
+                             every `updated_checkout` AJAX refresh, since WooCommerce replaces
+                             #order_review's whole markup on every totals/gateway change. -->
+                        <div id="negarin-place-order-slot" x-show="step === 2" x-cloak></div>
                     </div>
 
                     <?php

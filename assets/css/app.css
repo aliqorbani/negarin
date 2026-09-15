@@ -73,7 +73,7 @@ body {
     @apply inline-flex items-center justify-center px-6 py-3 text-sm tracking-wide transition-colors;
   }
   .btn--solid {
-    @apply btn bg-negarin-gray text-white hover:bg-black;
+    @apply btn bg-negarin-gray text-white hover:bg-black hover:text-white;
   }
   .btn--outline {
     @apply btn border border-negarin-ink text-negarin-ink hover:bg-negarin-ink hover:text-white;
@@ -180,6 +180,37 @@ select.negarin-field-input {
 }
 .negarin-field-input::placeholder {
   color: #9a9a9a;
+}
+
+/* Client-side required-field check on the step 1 -> 2 "continue" button
+   (see form-checkout.php's goToPayment()). Mirrors what a failed server
+   round-trip already looks like: red border + a short message under the
+   field. The message is generic on purpose (no per-field wording needed
+   client-side) — server-side errors still show the specific WooCommerce
+   text via the toast bridge in checkout.js. */
+.form-row.negarin-field-error input.input-text,
+.form-row.negarin-field-error select,
+.form-row.negarin-field-error .negarin-field-input {
+  border-color: #dc2626 !important;
+}
+.form-row.negarin-field-error::after {
+  content: 'این گزینه الزامی است.';
+  display: block;
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  color: #dc2626;
+}
+
+/* The whole site replaced WooCommerce's default notice boxes with toasts
+   (inc/hooks/notices.php + assets/js/toast.js). Checkout's AJAX error path
+   is a separate WC code path bridged into that same pipeline in
+   assets/js/checkout.js; this is just a defensive backstop so the default
+   box never visibly flashes if that JS is ever slow to run or fails. */
+.woocommerce-checkout .woocommerce-NoticeGroup,
+.woocommerce-checkout .woocommerce-error,
+.woocommerce-checkout .woocommerce-message,
+.woocommerce-checkout .woocommerce-info {
+  display: none !important;
 }
 
 /* Payment method list — reset WooCommerce core's own default styling

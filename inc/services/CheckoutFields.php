@@ -34,6 +34,18 @@ class CheckoutFields {
         // on submit and every order gets rejected with a "please accept the terms"
         // error, since there's no checkbox left to check.
         add_filter( 'woocommerce_checkout_show_terms', '__return_false' );
+        // WooCommerce's own required-field validation prefixes messages with
+        // the fieldset name ("Billing" / "صورتحساب") to disambiguate from a
+        // shipping-address counterpart. We only ever collect one address, so
+        // that prefix is just confusing noise here — strip it from the
+        // final error text rather than guess at overriding WC's internal
+        // message-building logic.
+        add_filter(
+            'woocommerce_add_error',
+            function ( $message ) {
+                return str_replace( array( 'صورتحساب ', 'Billing ' ), '', $message );
+            }
+        );
     }
 
     /**
