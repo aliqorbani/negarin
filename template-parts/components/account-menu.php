@@ -41,7 +41,7 @@ $menu_items    = wc_get_account_menu_items();
 $last_endpoint = array_key_last( $menu_items );
 ?>
 <div class="md:bg-white md:border md:border-[#e4e7ec] md:p-6 text-right">
-    <p class="font-serif text-lg mb-1">
+    <p class="font-serif text-base font-semibold mb-1">
         <?php
         printf(
         /* translators: %s: customer first name */
@@ -51,7 +51,7 @@ $last_endpoint = array_key_last( $menu_items );
         ?>
     </p>
     <?php if ( $phone ) : ?>
-        <p class="text-sm opacity-60 mb-4" dir="ltr"><?php echo esc_html( $phone ); ?></p>
+        <p class="font-serif font-normal text-xs m-0 mb-4" dir="ltr"><?php echo esc_html( $phone ); ?></p>
     <?php endif; ?>
 
     <nav class="border-t border-[#e4e7ec] pt-3 flex flex-col gap-3">
