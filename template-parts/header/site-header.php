@@ -40,7 +40,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         <?php endif; ?>
 
         <div class="flex items-center gap-4 text-lg flex-row-reverse">
-            <a href="<?php echo esc_url( function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'myaccount' ) : '#' ); ?>" aria-label="<?php esc_attr_e( 'حساب کاربری', 'negarin' ); ?>">
+            <a href="<?php echo esc_url( function_exists( 'wc_get_account_endpoint_url' ) ? wc_get_account_endpoint_url( 'edit-account' ) : '#' ); ?>" aria-label="<?php esc_attr_e( 'حساب کاربری', 'negarin' ); ?>">
                 <svg width="17" height="19" viewBox="0 0 17 19" fill="none">
                     <path d="M16.5 18.5C16.5 17.1044 16.5 16.4067 16.3278 15.8389C15.94 14.5605 14.9395 13.56 13.6611 13.1722C13.0933 13 12.3956 13 11 13H6C4.60444 13 3.90665 13 3.33886 13.1722C2.06045 13.56 1.06004 14.5605 0.67224 15.8389C0.5 16.4067 0.5 17.1044 0.5 18.5M13 5C13 7.48528 10.9853 9.5 8.5 9.5C6.01472 9.5 4 7.48528 4 5C4 2.51472 6.01472 0.5 8.5 0.5C10.9853 0.5 13 2.51472 13 5Z" stroke="#333333" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
