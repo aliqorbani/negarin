@@ -28,7 +28,7 @@ $address = WC()->countries->get_formatted_address(
 
 do_action( 'woocommerce_before_edit_account_form' ); ?>
 
-<form class="woocommerce-EditAccountForm edit-account" action="" method="post">
+<form class="woocommerce-EditAccountForm edit-account p-16" action="" method="post">
     <?php do_action( 'woocommerce_edit_account_form_start' ); ?>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">

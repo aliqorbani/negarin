@@ -44,7 +44,7 @@ $is_dashboard_root = ! is_wc_endpoint_url();
      * `woocommerce_account_content` even if the surrounding markup changes.
      */
     ?>
-    <div class="negarin-account-content <?php echo $is_dashboard_root ? 'hidden md:block' : ''; ?> order-2 md:col-start-2 border p-20">
+    <div class="negarin-account-content <?php echo $is_dashboard_root ? 'hidden md:block' : ''; ?> order-2 md:col-start-2 border p-5">
         <?php do_action( 'woocommerce_account_content' ); ?>
     </div>
 

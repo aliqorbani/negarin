@@ -44,14 +44,14 @@ $status_styles = array(
 
 <?php else : ?>
 
-	<table class="w-full text-sm text-right">
+	<table class="w-full text-right">
 		<thead>
-			<tr class="bg-negarin-cream text-xs">
-				<th class="py-3 px-3 font-normal"><?php esc_html_e( 'نام محصول', 'negarin' ); ?></th>
-				<th class="py-3 px-3 font-normal text-center"><?php esc_html_e( 'تاریخ سفارش', 'negarin' ); ?></th>
-				<th class="py-3 px-3 font-normal"><?php esc_html_e( 'تعداد', 'negarin' ); ?></th>
-				<th class="py-3 px-3 font-normal"><?php esc_html_e( 'وضعیت سفارش', 'negarin' ); ?></th>
-				<th class="py-3 px-3 font-normal"></th>
+			<tr class="bg-negarin-cream text-base">
+				<th class="py-5 px-5 font-normal"><?php esc_html_e( 'نام محصول', 'negarin' ); ?></th>
+				<th class="py-5 px-5 font-normal text-center"><?php esc_html_e( 'تاریخ سفارش', 'negarin' ); ?></th>
+				<th class="py-5 px-5 font-normal"><?php esc_html_e( 'تعداد', 'negarin' ); ?></th>
+				<th class="py-5 px-5 font-normal"><?php esc_html_e( 'وضعیت سفارش', 'negarin' ); ?></th>
+				<th class="py-5 px-5 font-normal"></th>
 			</tr>
 		</thead>
 		<tbody>
