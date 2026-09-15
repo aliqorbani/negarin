@@ -57,16 +57,18 @@ $permalink = apply_filters( 'woocommerce_cart_item_permalink', $product->is_visi
 			if ( $product->is_sold_individually() ) {
 				echo '<span class="text-sm opacity-70">' . esc_html__( 'تعداد: ۱', 'negarin' ) . '</span>'; // phpcs:ignore
 			} else {
-				get_template_part(
-					'template-parts/components/quantity-stepper',
-					null,
-					array(
-						'product'       => $product,
-						'cart_item_key' => $cart_item_key,
-						'quantity'      => $cart_item['quantity'],
-						'variant'       => 'compact',
-					)
-				);
+                $args = array(
+                        'product'       => $product,
+                        'cart_item_key' => $cart_item_key,
+                        'variant'       => 'compact',
+                        'quantity'      => $cart_item['quantity'],
+                );
+
+                get_template_part(
+                        'template-parts/components/quantity-stepper',
+                        null,
+                        $args
+                );
 			}
 			?>
 

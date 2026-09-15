@@ -100,9 +100,36 @@ body {
 [dir='ltr'] .negarin-otp-form {
   text-align: left;
 }
+.negarin-qty-stepper{
+  @apply relative inline-flex items-center;
+}
+.negarin-qty-stepper.loader{
+  @apply opacity-50 pointer-events-none;
+}
+.negarin-qty-stepper.loader:before{
+  width: 0.5em;
+  height: 0.5em;
+  margin-top: -0.25em;
+  margin-right: -0.25em;
+}
+.quantity{
+  @apply h-full;
+}
+input.negarin-qty-input[type=number] {
+  @apply text-center border-0 text-sm w-8;
+}
 
 /* Native WooCommerce cart controls we keep functional but drive via our
    own UI (quantity stepper triggers this button programmatically). */
+input.negarin-qty-input[type=number]::-webkit-inner-spin-button,
+input.negarin-qty-input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  margin: 0;
+
+}
+
 .woocommerce-cart-form [name='update_cart'] {
   position: absolute;
   width: 1px;

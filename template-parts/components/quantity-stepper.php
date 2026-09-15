@@ -23,20 +23,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 $product       = $args['product'] ?? null;
 $cart_item_key = $args['cart_item_key'] ?? '';
 $quantity      = $args['quantity'] ?? 1;
-$is_compact    = 'compact' === ( $args['variant'] ?? 'default' );
+$is_compact    = 'compact' === ( $args['variant'] ?? 'compact' );
 
 if ( ! $product ) {
 	return;
 }
+//echo '<pre>'.print_r( $args, true ).'</pre>';
 ?>
 <div
-	class="negarin-qty-stepper inline-flex items-center <?php echo $is_compact ? 'h-[42px] border border-negarin-line divide-x divide-negarin-line' : 'gap-2'; ?>"
+	class="negarin-qty-stepper  <?php echo $is_compact ? 'h-[42px] border border-negarin-line divide-x divide-negarin-line' : 'gap-2'; ?>"
 	<?php echo $is_compact ? 'dir="ltr"' : ''; ?>
 	x-data="{ qty: <?php echo (int) $quantity; ?> }"
 >
 	<button
 		type="button"
-		class="<?php echo $is_compact ? 'w-[25px] h-full shrink-0 flex items-center justify-center' : 'w-8 h-8 border border-black/15 rounded-sm flex items-center justify-center'; ?>"
+		class="<?php echo $is_compact ? 'w-[25px] h-full shrink-0 flex items-center justify-center' : 'w-8 h-10 border border-black/15 rounded-sm flex items-center justify-center'; ?>"
 		@click="qty = Math.max(1, qty - 1); let el = $el.parentElement.querySelector('.negarin-qty-input'); el.value = qty; el.dispatchEvent(new Event('change', { bubbles: true }))"
 		aria-label="<?php esc_attr_e( 'کاهش تعداد', 'negarin' ); ?>"
 	>−</button>
@@ -47,7 +48,7 @@ if ( ! $product ) {
 			'input_name'  => "cart[{$cart_item_key}][qty]",
 			'input_value' => $quantity,
 			'classes'     => $is_compact
-				? array( 'w-[30px]', 'h-full', 'shrink-0', 'text-center', 'border-0', 'negarin-qty-input','px-0' )
+				? array( 'w-[28px]', 'h-full', 'shrink-0', 'text-center', 'border-0', 'negarin-qty-input','px-0' )
 				: array( 'w-12', 'text-center', 'border-0', 'negarin-qty-input' ),
 		),
 		$product
@@ -56,7 +57,7 @@ if ( ! $product ) {
 
 	<button
 		type="button"
-		class="<?php echo $is_compact ? 'w-[25px] h-full shrink-0 flex items-center justify-center' : 'w-8 h-8 border border-black/15 rounded-sm flex items-center justify-center'; ?>"
+		class="flex items-center <?php echo $is_compact ? 'w-[25px] h-full shrink-0 justify-center' : 'w-8 h-10 border border-black/15 rounded-sm justify-center'; ?>"
 		@click="qty = qty + 1; let el = $el.parentElement.querySelector('.negarin-qty-input'); el.value = qty; el.dispatchEvent(new Event('change', { bubbles: true }))"
 		aria-label="<?php esc_attr_e( 'افزایش تعداد', 'negarin' ); ?>"
 	>+</button>

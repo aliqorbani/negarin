@@ -28,7 +28,7 @@ function cartItemKeyFromInput(input) {
 
 async function updateQuantity(cartItemKey, input, stepper) {
   const quantity = Math.max(1, parseInt(input.value, 10) || 1);
-  stepper?.classList.add('opacity-50', 'pointer-events-none');
+  stepper?.classList.add('loader');
 
   try {
     const res = await fetch(`${negarinData.restUrl}cart/update-item`, {
@@ -52,7 +52,7 @@ async function updateQuantity(cartItemKey, input, stepper) {
   } catch (e) {
     window.negarinToast('ارتباط با سرور برقرار نشد.', 'error');
   } finally {
-    stepper?.classList.remove('opacity-50', 'pointer-events-none');
+    stepper?.classList.remove('loader');
   }
 }
 
