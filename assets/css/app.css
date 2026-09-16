@@ -69,6 +69,10 @@ body {
  * utility combinations inline in templates; extend them here instead.
  * ------------------------------------------------------------------- */
 @layer components {
+
+  .zzz-test-xyz {
+    @apply text-red-500;
+  }
   .btn {
     @apply inline-flex items-center justify-center px-6 py-3 text-sm tracking-wide transition-colors;
   }
@@ -76,10 +80,41 @@ body {
     @apply btn bg-negarin-gray text-white hover:bg-black hover:text-white;
   }
   .btn--outline {
-    @apply btn border border-negarin-ink text-negarin-ink hover:bg-negarin-ink hover:text-white;
+    @apply btn border border-negarin-ink text-negarin-ink hover:bg-negarin-ink hover:text-white
   }
   .btn--outline-white {
-    @apply btn border border-white text-white hover:bg-white hover:text-negarin-ink;
+    @apply btn border border-white text-white hover:bg-white hover:text-white
+  }
+
+  .negarin-icon-buttons {
+    @apply flex flex-wrap items-center gap-3 mb-6;
+  }
+  .negarin-icon-buttons--center {
+    @apply justify-center;
+  }
+  .negarin-icon-buttons--end {
+    @apply justify-end;
+  }
+  .negarin-icon-buttons--between {
+    @apply justify-between;
+  }
+  .negarin-icon-buttons--nowrap {
+    @apply flex-nowrap;
+  }
+  .negarin-icon-btn-wrap{
+    @apply h-[56px];
+  }
+  .negarin-icon-btn{
+    @apply w-full h-full;
+  }
+  .negarin-icon-btn__label{
+    @apply text-lg;
+  }
+  .negarin-icon-btn__icon svg {
+    @apply w-6 h-6 block;
+  }
+  .prose p, .wp-block-paragraph{
+    @apply mb-6;
   }
 
   .product-card {

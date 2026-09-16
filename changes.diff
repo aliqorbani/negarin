@@ -1,199 +1,404 @@
 diff --git a/assets/css/app.css b/assets/css/app.css
-index 1a72758..77657bc 100644
+index 7a4c699..5624066 100644
 --- a/assets/css/app.css
 +++ b/assets/css/app.css
-@@ -182,6 +182,37 @@ select.negarin-field-input {
-   color: #9a9a9a;
- }
-
-+/* Client-side required-field check on the step 1 -> 2 "continue" button
-+   (see form-checkout.php's goToPayment()). Mirrors what a failed server
-+   round-trip already looks like: red border + a short message under the
-+   field. The message is generic on purpose (no per-field wording needed
-+   client-side) — server-side errors still show the specific WooCommerce
-+   text via the toast bridge in checkout.js. */
-+.form-row.negarin-field-error input.input-text,
-+.form-row.negarin-field-error select,
-+.form-row.negarin-field-error .negarin-field-input {
-+  border-color: #dc2626 !important;
-+}
-+.form-row.negarin-field-error::after {
-+  content: 'این گزینه الزامی است.';
-+  display: block;
-+  margin-top: 0.375rem;
-+  font-size: 0.75rem;
-+  color: #dc2626;
-+}
-+
-+/* The whole site replaced WooCommerce's default notice boxes with toasts
-+   (inc/hooks/notices.php + assets/js/toast.js). Checkout's AJAX error path
-+   is a separate WC code path bridged into that same pipeline in
-+   assets/js/checkout.js; this is just a defensive backstop so the default
-+   box never visibly flashes if that JS is ever slow to run or fails. */
-+.woocommerce-checkout .woocommerce-NoticeGroup,
-+.woocommerce-checkout .woocommerce-error,
-+.woocommerce-checkout .woocommerce-message,
-+.woocommerce-checkout .woocommerce-info {
-+  display: none !important;
-+}
-+
- /* Payment method list — reset WooCommerce core's own default styling
-    first (it ships a gray/lavender background + rounded corners on
-    .woocommerce-checkout-payment out of the box), then match Figma
-diff --git a/assets/js/checkout.js b/assets/js/checkout.js
-index b778d33..3ca6c4f 100644
---- a/assets/js/checkout.js
-+++ b/assets/js/checkout.js
-@@ -19,3 +19,73 @@ document.addEventListener('DOMContentLoaded', () => {
-     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-   });
- });
-+
-+/**
-+ * Route checkout validation errors through the same toast pipeline as
-+ * every other WooCommerce notice (see inc/hooks/notices.php + toast.js)
-+ * instead of WooCommerce's own default `.woocommerce-error` alert box,
-+ * which checkout.js inserts directly into the DOM on AJAX failure — a
-+ * different code path than the hidden-container one the rest of the
-+ * site already uses, so it needs its own bridge here.
-+ */
-+document.addEventListener('DOMContentLoaded', () => {
-+  if (!window.jQuery) return;
-+
-+  jQuery(document.body).on('checkout_error', () => {
-+    const noticeBox = document.querySelector('.woocommerce-NoticeGroup-checkout');
-+    const target = document.getElementById('negarin-wc-notices');
-+    if (!noticeBox || !target) return;
-+
-+    target.innerHTML = noticeBox.innerHTML;
-+    noticeBox.remove();
-+    document.dispatchEvent(new CustomEvent('negarin:fragments-updated'));
-+  });
-+});
-+
-+/**
-+ * Clears the red "required" highlight from goToPayment() (form-checkout.php)
-+ * as soon as the shopper actually fills the field in, instead of leaving it
-+ * red until the next click on "continue".
-+ */
-+document.addEventListener('DOMContentLoaded', () => {
-+  const container = document.getElementById('customer_details');
-+  if (!container) return;
-+
-+  const clearIfFilled = (e) => {
-+    const row = e.target.closest && e.target.closest('.form-row.negarin-field-error');
-+    if (row && e.target.value && String(e.target.value).trim()) {
-+      row.classList.remove('negarin-field-error');
-+    }
-+  };
-+
-+  container.addEventListener('input', clearIfFilled);
-+  container.addEventListener('change', clearIfFilled);
-+});
-+
-+/**
-+ * Figma puts the place-order button in the sidebar for both steps (step 1's
-+ * button is the Alpine "continue" one right above this slot; step 2's is
-+ * WooCommerce's own #place_order). WooCommerce renders #place_order inside
-+ * #order_review though, so we physically move it into the sidebar slot —
-+ * moving rather than cloning keeps checkout.js's delegated event handling
-+ * intact, since it listens on the form, not the button itself. Re-run on
-+ * every `updated_checkout` because WooCommerce replaces #order_review's
-+ * entire markup (place-order div included) on every totals/gateway change.
-+ */
-+function negarinRelocatePlaceOrder() {
-+  const slot = document.getElementById('negarin-place-order-slot');
-+  const placeOrderRow = document.querySelector('#order_review .place-order');
-+  if (!slot || !placeOrderRow) return;
-+  if (placeOrderRow.parentElement === slot) return; // already in place
-+
-+  // WooCommerce re-renders a brand new .place-order div inside #order_review
-+  // on every `updated_checkout` refresh (shipping method, coupon, gateway
-+  // change, etc.) — the previously-moved one is now stale, so clear it out
-+  // before moving the fresh one in, or they'd pile up.
-+  slot.innerHTML = '';
-+  slot.appendChild(placeOrderRow);
-+}
-+document.addEventListener('DOMContentLoaded', negarinRelocatePlaceOrder);
-+document.addEventListener('DOMContentLoaded', () => {
-+  window.jQuery && jQuery(document.body).on('updated_checkout', negarinRelocatePlaceOrder);
-+});
-diff --git a/inc/services/CheckoutFields.php b/inc/services/CheckoutFields.php
-index 4082cee..4963b4e 100644
---- a/inc/services/CheckoutFields.php
-+++ b/inc/services/CheckoutFields.php
-@@ -34,6 +34,18 @@ class CheckoutFields {
-         // on submit and every order gets rejected with a "please accept the terms"
-         // error, since there's no checkbox left to check.
-         add_filter( 'woocommerce_checkout_show_terms', '__return_false' );
-+        // WooCommerce's own required-field validation prefixes messages with
-+        // the fieldset name ("Billing" / "صورتحساب") to disambiguate from a
-+        // shipping-address counterpart. We only ever collect one address, so
-+        // that prefix is just confusing noise here — strip it from the
-+        // final error text rather than guess at overriding WC's internal
-+        // message-building logic.
-+        add_filter(
-+            'woocommerce_add_error',
-+            function ( $message ) {
-+                return str_replace( array( 'صورتحساب ', 'Billing ' ), '', $message );
-+            }
-+        );
+@@ -81,6 +81,9 @@ body {
+   .btn--outline-white {
+     @apply btn border border-white text-white hover:bg-white hover:text-negarin-ink;
+   }
++  .negarin-icon-btn__icon svg {
++    @apply w-4 h-4 block;
++  }
+ 
+   .product-card {
+     @apply block text-right;
+diff --git a/functions.php b/functions.php
+index da4eccd..e6efeff 100644
+--- a/functions.php
++++ b/functions.php
+@@ -89,5 +89,6 @@ add_action(
+         new \Negarin\Services\Seo();
+         new \Negarin\Services\FooterMessage();
+         new \Negarin\Services\BuildCleaner();
++        new \Negarin\Services\IconButtonBlock();
      }
-
-     /**
-diff --git a/woocommerce/checkout/form-checkout.php b/woocommerce/checkout/form-checkout.php
-index da6065e..4cb3b01 100644
---- a/woocommerce/checkout/form-checkout.php
-+++ b/woocommerce/checkout/form-checkout.php
-@@ -27,7 +27,31 @@ if ( ! is_ajax() ) {
- ?>
-
-     <div class="container max-w-7xl mx-auto px-4 pt-8">
--    <form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data" x-data="{ step: 1 }">
-+    <form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data" x-data="{
-+        step: 1,
-+        goToPayment() {
-+            // WooCommerce marks a required field by adding the
-+            // 'validate-required' class to the wrapping .form-row — not
-+            // the native HTML `required` attribute — so that's the signal
-+            // to check here, same as WooCommerce's own validation.js does.
-+            const rows = document.querySelectorAll( '#customer_details .form-row.validate-required' );
-+            let firstInvalid = null;
-+            rows.forEach( ( row ) => {
-+                const field = row.querySelector( 'input, select, textarea' );
-+                if ( ! field ) return;
-+                const empty = ! field.value || ! String( field.value ).trim();
-+                row.classList.toggle( 'negarin-field-error', empty );
-+                if ( empty && ! firstInvalid ) firstInvalid = field;
-+            } );
-+            if ( firstInvalid ) {
-+                firstInvalid.focus();
-+                firstInvalid.closest( '.form-row' ).scrollIntoView( { behavior: 'smooth', block: 'center' } );
-+                return;
-+            }
-+            window.jQuery && jQuery( document.body ).trigger( 'update_checkout' );
-+            this.step = 2;
-+        },
-+    }">
-
-         <?php if ( $checkout->get_checkout_fields() ) : ?>
-             <?php do_action( 'woocommerce_checkout_before_customer_details' ); ?>
-@@ -63,10 +87,16 @@ if ( ! is_ajax() ) {
-
-                         <?php wc_get_template( 'checkout/form-coupon.php' ); ?>
-
--                        <button type="button" x-show="step === 1" class="btn btn--solid w-full" @click="window.jQuery && jQuery(document.body).trigger('update_checkout'); step = 2">
-+                        <button type="button" x-show="step === 1" class="btn btn--solid w-full" @click="goToPayment()">
-                             <?php esc_html_e( 'تایید و ادامه', 'negarin' ); ?>
-                         </button>
--                        <!-- Step 2's real submit button is WooCommerce's own #place_order, rendered inside woocommerce_checkout_payment via checkout/payment.php -->
-+                        <!-- Step 2's real submit button is WooCommerce's own #place_order,
-+                             rendered inside woocommerce_checkout_payment via checkout/payment.php.
-+                             assets/js/checkout.js physically moves it here (Figma has the
-+                             button in the sidebar for both steps) and re-runs that move after
-+                             every `updated_checkout` AJAX refresh, since WooCommerce replaces
-+                             #order_review's whole markup on every totals/gateway change. -->
-+                        <div id="negarin-place-order-slot" x-show="step === 2" x-cloak></div>
-                     </div>
-
-                     <?php
+ );
+\ No newline at end of file
+diff --git a/inc/blocks/icon-button/block.json b/inc/blocks/icon-button/block.json
+new file mode 100644
+index 0000000..186f9e3
+--- /dev/null
++++ b/inc/blocks/icon-button/block.json
+@@ -0,0 +1,26 @@
++{
++  "$schema": "https://schemas.wp.org/trunk/block.json",
++  "apiVersion": 2,
++  "name": "negarin/icon-button",
++  "title": "دکمه آیکن‌دار نگارین",
++  "category": "negarin",
++  "icon": "button",
++  "description": "دکمه‌ای دقیقاً با استایل btn / btn--solid طرح نگارین که کنار متنش یک آیکن دارد (مثلاً دکمه اینستاگرام در صفحه درباره ما). مخصوص ادیتور گوتنبرگ، بیرون از فضای ووکامرس.",
++  "keywords": [ "دکمه", "button", "cta", "آیکن", "اینستاگرام", "instagram" ],
++  "textdomain": "negarin",
++  "attributes": {
++    "text": { "type": "string", "default": "ما را در اینستاگرام دنبال کنید" },
++    "url": { "type": "string", "default": "" },
++    "linkTarget": { "type": "string", "default": "_self" },
++    "rel": { "type": "string", "default": "" },
++    "icon": { "type": "string", "default": "instagram" },
++    "iconPosition": { "type": "string", "default": "after" },
++    "variant": { "type": "string", "default": "solid" }
++  },
++  "supports": {
++    "html": false,
++    "align": [ "left", "center", "right" ]
++  },
++  "editorScript": "negarin-icon-button-editor",
++  "render": "file:./render.php"
++}
+diff --git a/inc/blocks/icon-button/index.js b/inc/blocks/icon-button/index.js
+new file mode 100644
+index 0000000..925806a
+--- /dev/null
++++ b/inc/blocks/icon-button/index.js
+@@ -0,0 +1,125 @@
++/**
++ * Editor-side registration for negarin/icon-button.
++ *
++ * Deliberately plain JS against the wp.* globals — no JSX, no bundler —
++ * to match the rest of the theme (Alpine.js + hand-rolled files, no
++ * Composer/webpack build step for admin-only code). The actual button
++ * markup lives in render.php; this file only builds the settings UI and
++ * asks WordPress to preview that same PHP output via ServerSideRender,
++ * so the editor can never drift out of sync with the front end.
++ */
++( function ( blocks, element, blockEditor, components, i18n, serverSideRender ) {
++	var el = element.createElement;
++	var Fragment = element.Fragment;
++	var __ = i18n.__;
++
++	var InspectorControls = blockEditor.InspectorControls;
++	var PanelBody = components.PanelBody;
++	var TextControl = components.TextControl;
++	var SelectControl = components.SelectControl;
++	var ToggleControl = components.ToggleControl;
++	var ServerSideRender = serverSideRender && ( serverSideRender.default || serverSideRender );
++
++	var availableIcons = ( window.negarinIconButtonData && window.negarinIconButtonData.icons ) || {};
++
++	function iconOptions() {
++		var options = [ { label: __( 'بدون آیکن', 'negarin' ), value: 'none' } ];
++		Object.keys( availableIcons ).forEach( function ( key ) {
++			options.push( { label: availableIcons[ key ], value: key } );
++		} );
++		return options;
++	}
++
++	blocks.registerBlockType( 'negarin/icon-button', {
++		edit: function ( props ) {
++			var attributes = props.attributes;
++			var setAttributes = props.setAttributes;
++
++			return el(
++				Fragment,
++				{},
++				el(
++					InspectorControls,
++					{},
++					el(
++						PanelBody,
++						{ title: __( 'تنظیمات دکمه', 'negarin' ), initialOpen: true },
++						el( TextControl, {
++							label: __( 'متن دکمه', 'negarin' ),
++							value: attributes.text,
++							onChange: function ( value ) {
++								setAttributes( { text: value } );
++							},
++						} ),
++						el( TextControl, {
++							label: __( 'آدرس لینک', 'negarin' ),
++							value: attributes.url,
++							placeholder: 'https://instagram.com/negarin',
++							onChange: function ( value ) {
++								setAttributes( { url: value } );
++							},
++						} ),
++						el( ToggleControl, {
++							label: __( 'باز شدن در تب جدید', 'negarin' ),
++							checked: '_blank' === attributes.linkTarget,
++							onChange: function ( checked ) {
++								setAttributes( { linkTarget: checked ? '_blank' : '_self' } );
++							},
++						} ),
++						el( SelectControl, {
++							label: __( 'آیکن', 'negarin' ),
++							value: attributes.icon,
++							options: iconOptions(),
++							onChange: function ( value ) {
++								setAttributes( { icon: value } );
++							},
++						} ),
++						el( SelectControl, {
++							label: __( 'موقعیت آیکن', 'negarin' ),
++							value: attributes.iconPosition,
++							options: [
++								{ label: __( 'بعد از متن', 'negarin' ), value: 'after' },
++								{ label: __( 'قبل از متن', 'negarin' ), value: 'before' },
++							],
++							onChange: function ( value ) {
++								setAttributes( { iconPosition: value } );
++							},
++						} ),
++						el( SelectControl, {
++							label: __( 'استایل دکمه', 'negarin' ),
++							value: attributes.variant,
++							options: [
++								{ label: __( 'توپر مشکی (btn--solid)', 'negarin' ), value: 'solid' },
++								{ label: __( 'خط‌دار (btn--outline)', 'negarin' ), value: 'outline' },
++								{ label: __( 'خط‌دار سفید (btn--outline-white)', 'negarin' ), value: 'outline-white' },
++							],
++							onChange: function ( value ) {
++								setAttributes( { variant: value } );
++							},
++						} )
++					)
++				),
++				el(
++					'div',
++					{ className: 'negarin-icon-btn-editor-preview' },
++					ServerSideRender
++						? el( ServerSideRender, {
++								block: 'negarin/icon-button',
++								attributes: attributes,
++						  } )
++						: null
++				)
++			);
++		},
++		save: function () {
++			return null;
++		},
++	} );
++} )(
++	window.wp.blocks,
++	window.wp.element,
++	window.wp.blockEditor,
++	window.wp.components,
++	window.wp.i18n,
++	window.wp.serverSideRender
++);
+diff --git a/inc/blocks/icon-button/render.php b/inc/blocks/icon-button/render.php
+new file mode 100644
+index 0000000..b9d7434
+--- /dev/null
++++ b/inc/blocks/icon-button/render.php
+@@ -0,0 +1,75 @@
++<?php
++/**
++ * Server-side render for negarin/icon-button.
++ *
++ * Wired via block.json's "render" key, so WordPress includes this file
++ * automatically with $attributes / $content / $block already in scope —
++ * no render_callback registration needed.
++ *
++ * @var array    $attributes Block attributes.
++ * @var string   $content    Unused; this is a fully dynamic block.
++ * @var WP_Block $block      Block instance.
++ *
++ * @package Negarin
++ */
++
++if ( ! defined( 'ABSPATH' ) ) {
++	exit;
++}
++
++$text          = isset( $attributes['text'] ) ? trim( (string) $attributes['text'] ) : '';
++$url           = isset( $attributes['url'] ) ? (string) $attributes['url'] : '';
++$icon_key      = isset( $attributes['icon'] ) ? (string) $attributes['icon'] : 'none';
++$icon_position = ( isset( $attributes['iconPosition'] ) && 'before' === $attributes['iconPosition'] ) ? 'before' : 'after';
++$variant       = isset( $attributes['variant'] ) ? (string) $attributes['variant'] : 'solid';
++$link_target   = isset( $attributes['linkTarget'] ) ? (string) $attributes['linkTarget'] : '_self';
++$rel           = isset( $attributes['rel'] ) ? (string) $attributes['rel'] : '';
++
++if ( '' === $text ) {
++	return;
++}
++
++$variant_classes = array(
++	'outline'       => 'btn--outline',
++	'outline-white' => 'btn--outline-white',
++);
++$variant_class = $variant_classes[ $variant ] ?? 'btn--solid';
++
++$icon_svg = class_exists( '\Negarin\Services\IconButtonBlock' )
++	? \Negarin\Services\IconButtonBlock::icon_svg( $icon_key )
++	: '';
++
++if ( '_blank' === $link_target && '' === $rel ) {
++	$rel = 'noopener noreferrer';
++}
++
++$wrapper_attributes = get_block_wrapper_attributes( array( 'class' => 'negarin-icon-btn-wrap' ) );
++?>
++<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
++	<?php if ( '' !== $url ) : ?>
++		<a
++			href="<?php echo esc_url( $url ); ?>"
++			<?php echo '_blank' === $link_target ? 'target="_blank"' : ''; ?>
++			<?php echo $rel ? 'rel="' . esc_attr( $rel ) . '"' : ''; ?>
++			class="btn <?php echo esc_attr( $variant_class ); ?> negarin-icon-btn gap-2"
++		>
++			<?php if ( $icon_svg && 'before' === $icon_position ) : ?>
++				<span class="negarin-icon-btn__icon" aria-hidden="true"><?php echo $icon_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
++			<?php endif; ?>
++			<span class="negarin-icon-btn__label"><?php echo esc_html( $text ); ?></span>
++			<?php if ( $icon_svg && 'after' === $icon_position ) : ?>
++				<span class="negarin-icon-btn__icon" aria-hidden="true"><?php echo $icon_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
++			<?php endif; ?>
++		</a>
++	<?php else : ?>
++		<span class="btn <?php echo esc_attr( $variant_class ); ?> negarin-icon-btn gap-2">
++			<?php if ( $icon_svg && 'before' === $icon_position ) : ?>
++				<span class="negarin-icon-btn__icon" aria-hidden="true"><?php echo $icon_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
++			<?php endif; ?>
++			<span class="negarin-icon-btn__label"><?php echo esc_html( $text ); ?></span>
++			<?php if ( $icon_svg && 'after' === $icon_position ) : ?>
++				<span class="negarin-icon-btn__icon" aria-hidden="true"><?php echo $icon_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
++			<?php endif; ?>
++		</span>
++	<?php endif; ?>
++</div>
+diff --git a/inc/services/IconButtonBlock.php b/inc/services/IconButtonBlock.php
+new file mode 100644
+index 0000000..8dc293d
+--- /dev/null
++++ b/inc/services/IconButtonBlock.php
+@@ -0,0 +1,128 @@
++<?php
++/**
++ * Registers the "دکمه آیکن‌دار" (Icon Button) native Gutenberg block.
++ *
++ * This lives outside the WooCommerce space entirely — it's for plain
++ * WordPress pages built in the block editor (e.g. "درباره ما") that need
++ * a CTA button with an icon next to the label, styled with the exact same
++ * .btn / .btn--solid classes used everywhere else in the theme.
++ *
++ * @package Negarin
++ */
++
++namespace Negarin\Services;
++
++if ( ! defined( 'ABSPATH' ) ) {
++	exit;
++}
++
++class IconButtonBlock {
++
++	/**
++	 * Icons offered to editors, keyed the same way as negarin_social_icon().
++	 * Only platforms that already have real artwork there are listed —
++	 * add a label here the moment a new SVG lands in that helper.
++	 */
++	private const ICON_LABELS = array(
++		'instagram' => 'اینستاگرام',
++		'telegram'  => 'تلگرام',
++		'bale'      => 'بله',
++	);
++
++	public function __construct() {
++		add_action( 'init', array( $this, 'register_block' ) );
++		add_filter( 'block_categories_all', array( $this, 'add_block_category' ) );
++		add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_editor_assets' ) );
++	}
++
++	/**
++	 * Groups the block under its own "نگارین" heading in the inserter
++	 * instead of dumping it into "Widgets".
++	 */
++	public function add_block_category( array $categories ): array {
++		return array_merge(
++			array(
++				array(
++					'slug'  => 'negarin',
++					'title' => __( 'نگارین', 'negarin' ),
++				),
++			),
++			$categories
++		);
++	}
++
++	public function register_block(): void {
++		wp_register_script(
++			'negarin-icon-button-editor',
++			NEGARIN_URI . '/inc/blocks/icon-button/index.js',
++			array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n', 'wp-server-side-render' ),
++			NEGARIN_VERSION,
++			true
++		);
++
++		wp_localize_script(
++			'negarin-icon-button-editor',
++			'negarinIconButtonData',
++			array(
++				'icons' => $this->available_icons(),
++			)
++		);
++
++		register_block_type( NEGARIN_DIR . '/inc/blocks/icon-button' );
++	}
++
++	/**
++	 * Filters ICON_LABELS down to platforms negarin_social_icon() can
++	 * actually draw right now, so the dropdown never offers a blank icon.
++	 */
++	private function available_icons(): array {
++		$icons = array();
++
++		foreach ( self::ICON_LABELS as $key => $label ) {
++			if ( function_exists( 'negarin_social_icon' ) && '' !== negarin_social_icon( $key ) ) {
++				$icons[ $key ] = $label;
++			}
++		}
++
++		return $icons;
++	}
++
++	/**
++	 * Same SVG artwork used across the site (footer socials, etc.),
++	 * recolored to follow the button's text color via currentColor
++	 * instead of the fixed footer-badge gray.
++	 */
++	public static function icon_svg( string $key ): string {
++		if ( '' === $key || 'none' === $key || ! function_exists( 'negarin_social_icon' ) ) {
++			return '';
++		}
++
++		$svg = negarin_social_icon( $key );
++
++		if ( '' === $svg ) {
++			return '';
++		}
++
++		return str_replace( 'fill="#667085"', 'fill="currentColor"', $svg );
++	}
++
++	/**
++	 * Loads the theme's compiled Tailwind CSS inside the block editor so
++	 * the ServerSideRender preview matches the front end exactly — the
++	 * editor screen never enqueues this file on its own otherwise.
++	 */
++	public function enqueue_editor_assets(): void {
++		$manifest_path = NEGARIN_DIR . '/assets/build/.vite/manifest.json';
++
++		if ( ! file_exists( $manifest_path ) ) {
++			return;
++		}
++
++		$manifest = json_decode( (string) file_get_contents( $manifest_path ), true );
++		$entry    = $manifest['assets/js/app.js'] ?? null;
++
++		if ( ! empty( $entry['css'][0] ) ) {
++			wp_enqueue_style( 'negarin-app-editor', NEGARIN_URI . '/assets/build/' . $entry['css'][0], array(), NEGARIN_VERSION );
++		}
++	}
++}

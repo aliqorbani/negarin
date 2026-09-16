@@ -23,12 +23,12 @@ get_header();
             <article <?php post_class(); ?>>
 
                 <?php if ( ! $is_bare_login_screen && ! $is_checkout_page ) : ?>
-                    <h1 class="font-serif md:text-3xl mb-6 text-center md:text-right font-semibold text-lg">
+                    <h1 class="font-serif md:text-2xl mb-10 text-center font-semibold text-lg">
                         <?php the_title(); ?>
                     </h1>
                 <?php endif; ?>
 
-                <div class="prose max-w-none leading-8 prose-a:no-underline">
+                <div class="prose max-w-none leading-8 prose-a:no-underline prose-p:text-lg">
                     <?php the_content(); ?>
                 </div>
 

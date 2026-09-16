@@ -6,6 +6,13 @@ export default {
     './assets/js/**/*.js',
   ],
   theme: {
+    typography:{
+      DEFAULT: {
+        css:{
+          color: '#000000'
+        }
+      }
+    },
     extend: {
       colors: {
         // Design tokens — the single source of truth for brand colors.

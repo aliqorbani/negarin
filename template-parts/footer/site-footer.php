@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $message_status = isset( $_GET['negarin_msg'] ) ? sanitize_key( wp_unslash( $_GET['negarin_msg'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 ?>
-<footer class="negarin-footer bg-white mt-16 pt-16 pb-10 text-center relative">
+<footer class="negarin-footer border-t bg-white mt-16 pt-16 pb-10 text-center relative">
 	<div class="max-w-lg mx-auto px-4">
 
 		<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="inline-block mb-8">

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 2,
+  "name": "negarin/icon-button",
+  "title": "دکمه آیکن‌دار نگارین",
+  "category": "negarin",
+  "icon": "button",
+  "description": "دکمه‌ای دقیقاً با استایل btn / btn--solid طرح نگارین که کنار متنش یک آیکن دارد (مثلاً دکمه اینستاگرام در صفحه درباره ما). مخصوص ادیتور گوتنبرگ، بیرون از فضای ووکامرس.",
+  "keywords": [ "دکمه", "button", "cta", "آیکن", "اینستاگرام", "instagram" ],
+  "textdomain": "negarin",
+  "attributes": {
+    "text": { "type": "string", "default": "ما را در اینستاگرام دنبال کنید" },
+    "url": { "type": "string", "default": "" },
+    "linkTarget": { "type": "string", "default": "_self" },
+    "rel": { "type": "string", "default": "" },
+    "icon": { "type": "string", "default": "instagram" },
+    "iconPosition": { "type": "string", "default": "after" },
+    "variant": { "type": "string", "default": "solid" }
+  },
+  "supports": {
+    "html": false,
+    "align": [ "left", "center", "right" ]
+  },
+  "editorScript": "negarin-icon-button-editor",
+  "render": "file:./render.php"
+}

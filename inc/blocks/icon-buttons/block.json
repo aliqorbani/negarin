@@ -1,0 +1,19 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 2,
+  "name": "negarin/icon-buttons",
+  "title": "ردیف دکمه‌های آیکن‌دار",
+  "category": "negarin",
+  "icon": "button",
+  "description": "چند «دکمه آیکن‌دار» رو کنار هم (و در موبایل زیر هم) می‌چیند — برای وقتی چند CTA مثل اینستاگرام و تلگرام باید کنار هم دیده بشن.",
+  "keywords": [ "دکمه", "buttons", "ردیف", "کنار هم" ],
+  "textdomain": "negarin",
+  "attributes": {
+    "justify": { "type": "string", "default": "start" },
+    "wrap": { "type": "boolean", "default": true }
+  },
+  "supports": {
+    "html": false
+  },
+  "editorScript": "negarin-icon-buttons-editor"
+}

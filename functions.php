@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'NEGARIN_VERSION', '1.0.0' );
+define( 'NEGARIN_VERSION', '1.0.1' );
 define( 'NEGARIN_DIR', get_template_directory() );
 define( 'NEGARIN_URI', get_template_directory_uri() );
 
@@ -89,5 +89,6 @@ add_action(
         new \Negarin\Services\Seo();
         new \Negarin\Services\FooterMessage();
         new \Negarin\Services\BuildCleaner();
+        new \Negarin\Services\IconButtonBlock();
     }
 );
