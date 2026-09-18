@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 get_header();
 ?>
 
-<div class="max-w-5xl mx-auto px-4 py-10">
+<div class="max-w-7xl mx-auto px-4 py-10">
 
 	<?php get_template_part( 'template-parts/components/breadcrumbs' ); ?>
 

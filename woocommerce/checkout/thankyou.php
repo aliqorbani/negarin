@@ -14,7 +14,7 @@ if ( ! $order ) {
 }
 ?>
 
-<div class="max-w-2xl mx-auto text-center py-16 px-6">
+<div class="mx-auto text-center py-16 px-6 border">
 
 	<?php if ( $order->has_status( 'failed' ) ) : ?>
 
@@ -35,9 +35,9 @@ if ( ! $order ) {
 
 		<h1 class="font-serif text-2xl mb-8"><?php esc_html_e( 'نوش تن و جانِ شما ', 'negarin' ); ?> :‌)</h1>
 
-		<div class="flex items-center justify-center gap-3 mb-10">
-			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="btn btn--outline"><?php esc_html_e( 'بازگشت به صفحه اصلی', 'negarin' ); ?></a>
-			<a href="<?php echo esc_url( $order->get_view_order_url() ); ?>" class="btn btn--solid"><?php esc_html_e( 'پیگیری سفارش', 'negarin' ); ?></a>
+		<div class="flex flex-col md:flex-row items-center justify-center gap-3 mb-10">
+			<a href="<?php echo esc_url( $order->get_view_order_url() ); ?>" class="btn btn--solid text-base w-full md:w-[348px]"><?php esc_html_e( 'پیگیری سفارش', 'negarin' ); ?></a>
+			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="btn btn--outline text-base w-full md:w-[348px]"><?php esc_html_e( 'بازگشت به صفحه اصلی', 'negarin' ); ?></a>
 		</div>
 
 		<?php //do_action( 'woocommerce_thankyou', $order->get_id() ); ?>

@@ -25,9 +25,9 @@ if ( ! $product ) {
 $attachment_ids = $product->get_gallery_image_ids();
 $main_image_id  = $product->get_image_id();
 
-if ( $main_image_id ) {
-	array_unshift( $attachment_ids, $main_image_id );
-}
+//if ( $main_image_id ) {
+//	array_unshift( $attachment_ids, $main_image_id );
+//}
 ?>
 <div
 	class="negarin-product-gallery"
@@ -36,6 +36,7 @@ if ( $main_image_id ) {
 		active: 0,
 		onScroll(el) {
 			this.active = Math.round(el.scrollLeft / el.clientWidth);
+			console.log(this.active);
 		}
 	}"
 >
@@ -55,7 +56,7 @@ if ( $main_image_id ) {
 				@click="lightbox = <?php echo (int) $index; ?>"
 				aria-label="<?php esc_attr_e( 'بزرگ‌نمایی تصویر', 'negarin' ); ?>"
 			>
-				<?php negarin_image( (int) $attachment_id, 'negarin-hero', 'w-full h-auto object-cover', 0 !== $index ); ?>
+				<?php negarin_image( (int) $attachment_id, 'negarin-product-card', 'image-size-negarin-product-card w-full h-auto object-cover', 0 !== $index ); ?>
 			</button>
 		<?php endforeach; ?>
 	</div>

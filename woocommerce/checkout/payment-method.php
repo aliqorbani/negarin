@@ -14,12 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 <li class="wc_payment_method payment_method_<?php echo esc_attr( $gateway->id ); ?>">
-    <label for="payment_method_<?php echo esc_attr( $gateway->id ); ?>" class="flex items-center justify-between gap-3 px-4 md:px-6 py-3 md:py-4 cursor-pointer">
-        <span class="flex items-center gap-2">
-            <span class="text-base font-medium text-black"><?php echo $gateway->get_title(); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></span>
-            <?php echo $gateway->get_icon(); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>
-        </span>
-
+    <label for="payment_method_<?php echo esc_attr( $gateway->id ); ?>" class="flex items-center justify-start gap-2 px-4 md:px-6 py-3 md:py-4 cursor-pointer">
         <span class="relative inline-flex size-5 shrink-0">
             <input
                     id="payment_method_<?php echo esc_attr( $gateway->id ); ?>"
@@ -33,10 +28,14 @@ if ( ! defined( 'ABSPATH' ) ) {
             <span class="absolute inset-0 rounded-full border border-black"></span>
             <span class="absolute inset-0 m-auto size-[10px] scale-0 rounded-full bg-[#333] transition-transform peer-checked:scale-100"></span>
         </span>
+        <span class="flex items-center gap-2">
+            <?php echo $gateway->get_icon(); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>
+            <span class="text-base font-medium text-black"><?php echo $gateway->get_title(); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></span>
+        </span>
     </label>
 
     <?php if ( $gateway->get_description() ) : ?>
-        <p class="px-4 md:px-6 pb-3 md:pb-4 -mt-1 text-sm text-[#98a2b3]"><?php echo wp_kses_post( $gateway->get_description() ); ?></p>
+        <p class="-mt-1 md:pr-14 md:px-6 px-4 text-[#98a2b3] text-sm"><?php echo wp_kses_post( $gateway->get_description() ); ?></p>
     <?php endif; ?>
 
     <?php if ( $gateway->has_fields() ) : ?>

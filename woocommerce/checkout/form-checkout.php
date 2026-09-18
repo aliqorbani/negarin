@@ -32,7 +32,7 @@ if ( ! is_ajax() ) {
         <?php if ( $checkout->get_checkout_fields() ) : ?>
             <?php do_action( 'woocommerce_checkout_before_customer_details' ); ?>
 
-            <div class="container max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8 items-start">
+            <div class="container max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-[1fr_280px] gap-8 items-start">
 
                 <div class="order-1">
 
@@ -82,7 +82,7 @@ if ( ! is_ajax() ) {
                     //                    $negarin_terms_url  = $negarin_terms_page ? get_permalink( $negarin_terms_page ) : '';
                     //this has been removed because option return type is a url not a page_id or something els
                     if ( $negarin_terms_page ) : ?>
-                        <a href="<?php echo esc_url( $negarin_terms_page ); ?>" class="border border-negarin-line flex items-center justify-center gap-2 px-4 py-3 mt-4 text-sm">
+                        <a href="<?php echo esc_url( $negarin_terms_page ); ?>" class="border border-negarin-line flex items-center justify-center gap-2  px-1.5 py-3 mt-4 text-sm">
                             <span>💌</span>
                             <span><?php esc_html_e( 'شرایطی که قبل از ثبت سفارش باید بخوانید', 'negarin' ); ?></span>
                         </a>

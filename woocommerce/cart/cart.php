@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 do_action( 'woocommerce_before_cart' );
 ?>
 
-    <div class="container max-w-7xl mx-auto px-4 py-8">
+    <div class="container max-w-7xl mx-auto md:px-4 md:py-8 px-3">
 
         <?php if ( WC()->cart->is_empty() ) : ?>
 
@@ -25,7 +25,7 @@ do_action( 'woocommerce_before_cart' );
 
         <?php else : ?>
 
-            <form class="woocommerce-cart-form grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8 items-start" method="post" action="<?php echo esc_url( wc_get_cart_url() ); ?>">
+            <form class="woocommerce-cart-form grid grid-cols-1 md:grid-cols-[1fr_280px] gap-8 items-start" method="post" action="<?php echo esc_url( wc_get_cart_url() ); ?>">
                 <?php do_action( 'woocommerce_before_cart_table' ); ?>
 
                 <div class="order-1">
@@ -47,13 +47,13 @@ do_action( 'woocommerce_before_cart' );
                     </div>
 
                     <div class="hidden md:block overflow-x-auto border border-negarin-line p-5 pb-0">
-                        <table class="w-full text-sm text-right mt-0 mb-0">
+                        <table class="w-full text-right mt-0 mb-0">
                             <thead>
-                            <tr class="bg-[#f0f1f2] text-xs">
-                                <th class="py-3 px-3 font-normal w-full"><?php esc_html_e( 'محصول', 'negarin' ); ?></th>
-                                <th class="py-3 px-3 font-normal"><?php esc_html_e( 'تعداد', 'negarin' ); ?></th>
-                                <th class="py-3 px-3 font-normal"><?php esc_html_e( 'قیمت تک', 'negarin' ); ?></th>
-                                <th class="py-3 px-3 font-normal"></th>
+                            <tr class="bg-[#F0F1F2] text-base">
+                                <th class="pt-3.5 pb-4 px-3 font-normal"><?php esc_html_e( 'محصول', 'negarin' ); ?></th>
+                                <th class="pt-3.5 pb-4 px-3 font-normal text-center"><?php esc_html_e( 'تعداد', 'negarin' ); ?></th>
+                                <th class="pt-3.5 pb-4 px-3 font-normal"><?php esc_html_e( 'قیمت تک', 'negarin' ); ?></th>
+                                <th class="pt-3.5 pb-4 px-3 font-normal"></th>
                             </tr>
                             </thead>
                             <tbody>
@@ -68,19 +68,19 @@ do_action( 'woocommerce_before_cart' );
                                 ?>
                                 <tr class="border-b border-black/5">
                                     <td class="align-middle mt-4 mb-4">
-                                        <div class="flex justify-start items-center gap-3">
+                                        <div class="flex gap-3 items-center justify-start pb-4 pt-4">
                                             <?php if ( $permalink ) : ?>
                                                 <a href="<?php echo esc_url( $permalink ); ?>" class="shrink-0 w-17 h-32.5 block overflow-hidden">
                                                     <?php echo $product->get_image( 'thumbnail', array( 'class' => 'w-full h-full object-cover' ) ); // phpcs:ignore ?>
                                                 </a>
                                             <?php endif; ?>
                                             <div class="flex flex-col">
-                                                <a href="<?php echo esc_url( $permalink ); ?>" class="block"><?php echo wp_kses_post( $product->get_name() ); ?></a>
+                                                <a href="<?php echo esc_url( $permalink ); ?>" class="block text-lg font-semibold"><?php echo wp_kses_post( $product->get_name() ); ?></a>
                                                 <?php echo wc_get_formatted_cart_item_data( $cart_item ); // phpcs:ignore ?>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="align-middle">
+                                    <td class="align-middle mx-auto text-center">
                                         <?php
                                         if ( $product->is_sold_individually() ) {
                                             echo '1';
@@ -97,7 +97,7 @@ do_action( 'woocommerce_before_cart' );
                                         }
                                         ?>
                                     </td>
-                                    <td class="align-middle whitespace-nowrap">
+                                    <td class="align-middle font-semibold text-lg whitespace-nowrap">
                                         <?php echo apply_filters( 'woocommerce_cart_item_price', WC()->cart->get_product_price( $product ), $cart_item, $cart_item_key ); // phpcs:ignore ?>
                                     </td>
                                     <td class="align-middle">
@@ -128,8 +128,8 @@ do_action( 'woocommerce_before_cart' );
                     </div>
                 </div>
 
-                <div class="order-2 md:sticky md:top-24">
-                    <div class="bg-white p-4 text-right border border-negarin-line">
+                <div class="order-2 md:sticky md:top-24"><!--sticky bottom-0-->
+                    <div class="bg-white py-4 px-2.5 text-right border border-negarin-line">
                         <h2 class="font-medium font-serif mb-4 mt-0.5 pr-2 text-base"><?php esc_html_e( 'فاکتور شما', 'negarin' ); ?></h2>
 
                         <div id="negarin-order-totals">
@@ -172,7 +172,7 @@ do_action( 'woocommerce_before_cart' );
 //                    $negarin_terms_url  = $negarin_terms_page ? get_permalink( $negarin_terms_page ) : '';
                     //this has been removed because option return type is a url not a page_id or something els
                     if ( $negarin_terms_page ) : ?>
-                        <a href="<?php echo esc_url( $negarin_terms_page ); ?>" class="border border-negarin-line flex items-center justify-center gap-2 px-4 py-3 mt-4 text-sm">
+                        <a href="<?php echo esc_url( $negarin_terms_page ); ?>" class="border border-negarin-line flex items-center justify-center gap-2 px-1.5 py-3 mt-4 text-sm">
                             <span>💌</span>
                             <span><?php esc_html_e( 'شرایطی که قبل از ثبت سفارش باید بخوانید', 'negarin' ); ?></span>
                         </a>

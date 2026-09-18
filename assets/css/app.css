@@ -183,7 +183,7 @@ input.negarin-qty-input[type=number]::-webkit-outer-spin-button {
   margin-bottom: 1.25rem;
 }
 .form-row label {
-  @apply block text-sm mb-2;
+  @apply block text-sm;
 }
 .woocommerce-checkout .woocommerce-billing-fields__field-wrapper {
   @apply grid grid-cols-1 md:grid-cols-2 gap-x-6;
@@ -231,6 +231,10 @@ select.negarin-field-input {
 
 .woocommerce form .form-row-first, .woocommerce form .form-row-last, .woocommerce-page form .form-row-first, .woocommerce-page form .form-row-last{
   @apply w-full;
+}
+
+.woocommerce form .form-row{
+  @apply mb-10;
 }
 
 .woocommerce form .form-row .optional{

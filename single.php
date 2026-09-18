@@ -17,7 +17,7 @@ while ( have_posts() ) :
 	$toc = negarin_extract_toc( get_the_content() );
 	?>
 
-	<article <?php post_class( 'max-w-3xl mx-auto px-4 py-10' ); ?>>
+	<article <?php post_class( 'max-w-7xl mx-auto px-4 py-10' ); ?>>
 
 		<?php get_template_part( 'template-parts/components/breadcrumbs' ); ?>
 

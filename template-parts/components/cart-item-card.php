@@ -39,7 +39,7 @@ $permalink = apply_filters( 'woocommerce_cart_item_permalink', $product->is_visi
 		</a>
 	<?php endif; ?>
 
-	<div class="flex-1 min-w-0 flex flex-col justify-between">
+	<div class="flex-1 min-w-0 flex flex-col justify-around">
 		<div>
 			<div class="flex items-start justify-between gap-2">
 				<a href="<?php echo esc_url( $permalink ); ?>" class="font-serif font-semibold text-lg text-negarin-gray">

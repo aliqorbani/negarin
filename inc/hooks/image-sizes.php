@@ -17,9 +17,9 @@ add_action(
             'single_image_width'    => 600,
         ]);
 		add_image_size( 'negarin-hero', 1440, 600, true );
-		add_image_size( 'negarin-section-half', 600, 1075, true );
-		add_image_size( 'negarin-grid-2', 600, 1075, true );
-		add_image_size( 'negarin-grid-3', 390, 690, true );
-		add_image_size( 'negarin-product-card', 600, 750, true );
+		add_image_size( 'negarin-section-half', 600, 0, false );
+		add_image_size( 'negarin-grid-2', 600, 0, false );
+		add_image_size( 'negarin-grid-3', 390, 0, false );
+		add_image_size( 'negarin-product-card', 600, 1400, true );
 	}
 );
