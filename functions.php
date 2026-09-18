@@ -59,6 +59,7 @@ $negarin_includes = array(
     '/inc/hooks/turbo.php',
     '/inc/hooks/notices.php',
     '/inc/hooks/woocommerce.php',
+    '/inc/hooks/ai-seo-box.php',
 );
 $negarin_includes = array_unique( $negarin_includes );
 
