@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <div
         x-data
         @negarin:toast.window="$store.toast.push($event.detail.message, $event.detail.type, $event.detail.duration)"
-        class="fixed inset-x-4 top-4 md:inset-x-auto md:top-6 md:left-6 z-[100] flex flex-col gap-3 pointer-events-none"
+        class="fixed inset-x-4 top-14 md:inset-x-auto md:top-6 md:left-6 z-[100] flex flex-col gap-3 pointer-events-none"
 >
     <template x-for="item in $store.toast.items" :key="item.id">
         <div

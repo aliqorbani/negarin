@@ -45,8 +45,8 @@ $component_state = wp_json_encode(
     >
 
         <div class="flex items-center justify-between pb-4 border-b border-negarin-line mb-6">
-            <button @click="sizeSelectOpen = false" aria-label="<?php esc_attr_e( 'بستن', 'negarin' ); ?>" class="text-2xl leading-none order-1">&times;</button>
-            <h3 class="font-serif text-base md:text-xl order-2"><?php esc_html_e( 'انتخاب سایز', 'negarin' ); ?></h3>
+            <h3 class="font-serif text-base md:text-xl order-1"><?php esc_html_e( 'انتخاب سایز', 'negarin' ); ?></h3>
+            <button @click="sizeSelectOpen = false" aria-label="<?php esc_attr_e( 'بستن', 'negarin' ); ?>" class="text-2xl leading-none order-2">&times;</button>
         </div>
 
         <div class="flex flex-wrap gap-2 mb-3">

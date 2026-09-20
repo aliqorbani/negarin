@@ -74,7 +74,7 @@ $main_image_id  = $product->get_image_id();
 
 	<div x-show="lightbox !== null" x-cloak class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" @click="lightbox = null">
 		<?php foreach ( $attachment_ids as $index => $attachment_id ) : ?>
-			<img x-show="lightbox === <?php echo (int) $index; ?>" src="<?php echo esc_url( wp_get_attachment_image_url( (int) $attachment_id, 'large' ) ); ?>" class="max-h-full max-w-full object-contain" alt="">
+			<img x-show="lightbox === <?php echo (int) $index; ?>" src="<?php echo esc_url( wp_get_attachment_image_url( (int) $attachment_id, 'full' ) ); ?>" class="max-h-full max-w-full object-contain" alt="">
 		<?php endforeach; ?>
 	</div>
 </div>

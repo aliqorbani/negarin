@@ -17,7 +17,7 @@ $button   = get_sub_field( 'hero_button' );
 $position = get_sub_field( 'text_position' ) ?: 'none';
 ?>
 <section class="negarin-page-section negarin-hero relative w-full overflow-hidden">
-    <?php negarin_image( $image, 'negarin-hero', 'w-full h-auto object-cover', false ); ?>
+    <?php negarin_image( $image, 'full', 'w-full h-auto object-cover', false ); ?>
 
     <?php if ( 'none' !== $position && ( $title || $text ) ) : ?>
         <div class="negarin-hero__overlay absolute inset-0 flex flex-col items-center justify-<?php echo esc_attr( 'bottom' === $position ? 'end pb-12' : 'center' ); ?> px-6 text-center bg-black/20">

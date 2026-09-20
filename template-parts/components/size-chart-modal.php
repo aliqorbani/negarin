@@ -29,8 +29,8 @@ $content = negarin_option( 'size_guide_content' );
 	<div class="relative bg-white w-full md:max-w-2xl max-h-[85vh] overflow-y-auto rounded-t-2xl md:rounded-sm p-6 md:p-8 text-right">
 
 		<div class="flex items-center justify-between pb-4 border-b border-negarin-line mb-6">
-			<h3 class="font-serif text-base md:text-xl order-2"><?php esc_html_e( 'راهنمای سایز', 'negarin' ); ?></h3>
-			<button @click.stop="sizeChartOpen = false" aria-label="<?php esc_attr_e( 'بستن', 'negarin' ); ?>" class="text-2xl leading-none order-1">&times;</button>
+			<h3 class="font-serif text-base md:text-xl order-1"><?php esc_html_e( 'راهنمای سایز', 'negarin' ); ?></h3>
+			<button @click.stop="sizeChartOpen = false" aria-label="<?php esc_attr_e( 'بستن', 'negarin' ); ?>" class="text-2xl leading-none order-2">&times;</button>
 		</div>
 
 		<?php if ( $content ) : ?>
