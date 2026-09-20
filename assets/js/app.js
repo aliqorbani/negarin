@@ -19,6 +19,6 @@ window.Alpine = Alpine;
 Alpine.store('toast', negarinToastStore());
 Alpine.data('negarinOtp', negarinOtp);
 Alpine.data('negarinSizeSelect', negarinSizeSelect);
-Alpine.data('negarinSearch', negarinSearch);
 Alpine.data('negarinCheckoutForm', negarinCheckoutForm);
+Alpine.data('negarinSearch', negarinSearch);
 Alpine.start();

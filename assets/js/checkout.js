@@ -106,6 +106,15 @@ document.addEventListener('DOMContentLoaded', () => {
   container.addEventListener('input', clearIfFilled);
   container.addEventListener('change', clearIfFilled);
 });
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('input[name="payment_method"]').forEach((payment_method) => {
+    payment_method.addEventListener('change', () => {
+      console.log('payment method changed');
+      console.log({payment: payment_method.value});
+      jQuery(document.body).trigger('update_checkout');
+    });
+  });
+});
 
 /**
  * Figma puts the place-order button in the sidebar for both steps (step 1's
