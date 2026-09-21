@@ -106,13 +106,25 @@ document.addEventListener('DOMContentLoaded', () => {
   container.addEventListener('input', clearIfFilled);
   container.addEventListener('change', clearIfFilled);
 });
+
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('input[name="payment_method"]').forEach((payment_method) => {
+
     payment_method.addEventListener('change', () => {
-      console.log('payment method changed');
-      console.log({payment: payment_method.value});
+
+      // console.log('payment method changed');
+      // console.log({ payment: payment_method.value });
+
+      // اگر WooCommerce در حال آپدیت Checkout است،
+      // دوباره update_checkout را اجرا نکن
+      if (jQuery(document.body).hasClass('processing')) {
+        // console.log('Checkout is already processing. Skipping update_checkout.');
+        return;
+      }
+
       jQuery(document.body).trigger('update_checkout');
     });
+
   });
 });
 
