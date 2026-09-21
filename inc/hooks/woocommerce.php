@@ -155,3 +155,11 @@ add_filter('woocommerce_save_account_details_required_fields', function ($requir
 
     return $required_fields;
 });
+
+/**
+ * moortak-wc-split-payment: this theme already prints every gateway's
+ * description itself, right under its title
+ * (woocommerce/checkout/payment-method.php), so tell the plugin not to
+ * print it a second time inside its own payment box.
+ */
+add_filter( 'moortak_split_payment_print_description_in_box', '__return_false' );
