@@ -13,6 +13,7 @@ import { negarinToastStore } from './toast.js';
 import { negarinCheckoutForm } from './checkout.js';
 import './ajax-cart.js';
 import './cart.js';
+import './cart-added-modal.js';
 import './header-offset.js';
 
 window.Alpine = Alpine;

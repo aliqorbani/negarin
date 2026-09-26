@@ -42,7 +42,7 @@ export function negarinSizeSelect({ productId, options }) {
         if (!res.ok) throw new Error(data.message || 'خطایی رخ داد.');
 
         applyFragments(data.fragments);
-        window.negarinToast(data.message, 'success');
+        window.negarinShowCartAddedModal();
         this.selected = null;
         this.$dispatch('negarin:cart-added');
       } catch (e) {

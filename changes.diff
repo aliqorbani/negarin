@@ -1,209 +1,170 @@
-diff --git a/assets/css/app.css b/assets/css/app.css
-index 7a4c699..5624066 100644
---- a/assets/css/app.css
-+++ b/assets/css/app.css
-@@ -81,6 +81,9 @@ body {
-   .btn--outline-white {
-     @apply btn border border-white text-white hover:bg-white hover:text-negarin-ink;
-   }
-+  .negarin-icon-btn__icon svg {
-+    @apply w-4 h-4 block;
-+  }
+diff --git a/assets/js/app.js b/assets/js/app.js
+index f9195f1..fb64df9 100644
+--- a/assets/js/app.js
++++ b/assets/js/app.js
+@@ -13,6 +13,7 @@ import { negarinToastStore } from './toast.js';
+ import { negarinCheckoutForm } from './checkout.js';
+ import './ajax-cart.js';
+ import './cart.js';
++import './cart-added-modal.js';
+ import './header-offset.js';
  
-   .product-card {
-     @apply block text-right;
-diff --git a/functions.php b/functions.php
-index da4eccd..e6efeff 100644
---- a/functions.php
-+++ b/functions.php
-@@ -89,5 +89,6 @@ add_action(
-         new \Negarin\Services\Seo();
-         new \Negarin\Services\FooterMessage();
-         new \Negarin\Services\BuildCleaner();
-+        new \Negarin\Services\IconButtonBlock();
-     }
- );
-\ No newline at end of file
-diff --git a/inc/blocks/icon-button/block.json b/inc/blocks/icon-button/block.json
+ window.Alpine = Alpine;
+diff --git a/assets/js/cart-added-modal.js b/assets/js/cart-added-modal.js
 new file mode 100644
-index 0000000..186f9e3
+index 0000000..fcb64fe
 --- /dev/null
-+++ b/inc/blocks/icon-button/block.json
-@@ -0,0 +1,26 @@
-+{
-+  "$schema": "https://schemas.wp.org/trunk/block.json",
-+  "apiVersion": 2,
-+  "name": "negarin/icon-button",
-+  "title": "دکمه آیکن‌دار نگارین",
-+  "category": "negarin",
-+  "icon": "button",
-+  "description": "دکمه‌ای دقیقاً با استایل btn / btn--solid طرح نگارین که کنار متنش یک آیکن دارد (مثلاً دکمه اینستاگرام در صفحه درباره ما). مخصوص ادیتور گوتنبرگ، بیرون از فضای ووکامرس.",
-+  "keywords": [ "دکمه", "button", "cta", "آیکن", "اینستاگرام", "instagram" ],
-+  "textdomain": "negarin",
-+  "attributes": {
-+    "text": { "type": "string", "default": "ما را در اینستاگرام دنبال کنید" },
-+    "url": { "type": "string", "default": "" },
-+    "linkTarget": { "type": "string", "default": "_self" },
-+    "rel": { "type": "string", "default": "" },
-+    "icon": { "type": "string", "default": "instagram" },
-+    "iconPosition": { "type": "string", "default": "after" },
-+    "variant": { "type": "string", "default": "solid" }
-+  },
-+  "supports": {
-+    "html": false,
-+    "align": [ "left", "center", "right" ]
-+  },
-+  "editorScript": "negarin-icon-button-editor",
-+  "render": "file:./render.php"
-+}
-diff --git a/inc/blocks/icon-button/index.js b/inc/blocks/icon-button/index.js
-new file mode 100644
-index 0000000..925806a
---- /dev/null
-+++ b/inc/blocks/icon-button/index.js
-@@ -0,0 +1,125 @@
++++ b/assets/js/cart-added-modal.js
+@@ -0,0 +1,36 @@
 +/**
-+ * Editor-side registration for negarin/icon-button.
++ * "به سبد خرید اضافه شد" success modal
++ * (template-parts/components/cart-added-modal.php). Per the 2026-09
++ * decision, a successful add-to-cart no longer confirms with a toast — it
++ * opens this modal instead, with "ادامه خرید" (shop page) and "تکمیل خرید"
++ * (cart page) actions. Errors are unaffected and still go through
++ * toast.js.
 + *
-+ * Deliberately plain JS against the wp.* globals — no JSX, no bundler —
-+ * to match the rest of the theme (Alpine.js + hand-rolled files, no
-+ * Composer/webpack build step for admin-only code). The actual button
-+ * markup lives in render.php; this file only builds the settings UI and
-+ * asks WordPress to preview that same PHP output via ServerSideRender,
-+ * so the editor can never drift out of sync with the front end.
++ * Two sources trigger it, both only on a *successful* add:
++ *  1. Native: WooCommerce's own `added_to_cart` event, fired only on
++ *     success by the shop-loop and single-product "ajax_add_to_cart"
++ *     buttons (inc/hooks/woocommerce.php). toast.js still parses
++ *     `#negarin-wc-notices` on this same event, but skips the plain
++ *     success notice now that this modal covers it — any other notice
++ *     riding along (stock/backorder info, say) still gets toasted.
++ *  2. Custom: assets/js/size-select.js calls
++ *     `window.negarinShowCartAddedModal()` directly after its own REST
++ *     add-to-cart call succeeds (that endpoint never raises its own
++ *     wc_add_notice(), so there's no notice-container path for it).
++ *
++ * Bound on `document`, not `document.body`, for the same reason as
++ * assets/js/ajax-cart.js: Turbo Drive replaces <body> on every
++ * navigation, which would silently kill a listener attached to the old
++ * body reference.
 + */
-+( function ( blocks, element, blockEditor, components, i18n, serverSideRender ) {
-+	var el = element.createElement;
-+	var Fragment = element.Fragment;
-+	var __ = i18n.__;
++function initCartAddedModalGlobal() {
++  window.negarinShowCartAddedModal = () => {
++    window.dispatchEvent(new CustomEvent('negarin:cart-added-modal'));
++  };
++}
 +
-+	var InspectorControls = blockEditor.InspectorControls;
-+	var PanelBody = components.PanelBody;
-+	var TextControl = components.TextControl;
-+	var SelectControl = components.SelectControl;
-+	var ToggleControl = components.ToggleControl;
-+	var ServerSideRender = serverSideRender && ( serverSideRender.default || serverSideRender );
++initCartAddedModalGlobal();
 +
-+	var availableIcons = ( window.negarinIconButtonData && window.negarinIconButtonData.icons ) || {};
-+
-+	function iconOptions() {
-+		var options = [ { label: __( 'بدون آیکن', 'negarin' ), value: 'none' } ];
-+		Object.keys( availableIcons ).forEach( function ( key ) {
-+			options.push( { label: availableIcons[ key ], value: key } );
-+		} );
-+		return options;
-+	}
-+
-+	blocks.registerBlockType( 'negarin/icon-button', {
-+		edit: function ( props ) {
-+			var attributes = props.attributes;
-+			var setAttributes = props.setAttributes;
-+
-+			return el(
-+				Fragment,
-+				{},
-+				el(
-+					InspectorControls,
-+					{},
-+					el(
-+						PanelBody,
-+						{ title: __( 'تنظیمات دکمه', 'negarin' ), initialOpen: true },
-+						el( TextControl, {
-+							label: __( 'متن دکمه', 'negarin' ),
-+							value: attributes.text,
-+							onChange: function ( value ) {
-+								setAttributes( { text: value } );
-+							},
-+						} ),
-+						el( TextControl, {
-+							label: __( 'آدرس لینک', 'negarin' ),
-+							value: attributes.url,
-+							placeholder: 'https://instagram.com/negarin',
-+							onChange: function ( value ) {
-+								setAttributes( { url: value } );
-+							},
-+						} ),
-+						el( ToggleControl, {
-+							label: __( 'باز شدن در تب جدید', 'negarin' ),
-+							checked: '_blank' === attributes.linkTarget,
-+							onChange: function ( checked ) {
-+								setAttributes( { linkTarget: checked ? '_blank' : '_self' } );
-+							},
-+						} ),
-+						el( SelectControl, {
-+							label: __( 'آیکن', 'negarin' ),
-+							value: attributes.icon,
-+							options: iconOptions(),
-+							onChange: function ( value ) {
-+								setAttributes( { icon: value } );
-+							},
-+						} ),
-+						el( SelectControl, {
-+							label: __( 'موقعیت آیکن', 'negarin' ),
-+							value: attributes.iconPosition,
-+							options: [
-+								{ label: __( 'بعد از متن', 'negarin' ), value: 'after' },
-+								{ label: __( 'قبل از متن', 'negarin' ), value: 'before' },
-+							],
-+							onChange: function ( value ) {
-+								setAttributes( { iconPosition: value } );
-+							},
-+						} ),
-+						el( SelectControl, {
-+							label: __( 'استایل دکمه', 'negarin' ),
-+							value: attributes.variant,
-+							options: [
-+								{ label: __( 'توپر مشکی (btn--solid)', 'negarin' ), value: 'solid' },
-+								{ label: __( 'خط‌دار (btn--outline)', 'negarin' ), value: 'outline' },
-+								{ label: __( 'خط‌دار سفید (btn--outline-white)', 'negarin' ), value: 'outline-white' },
-+							],
-+							onChange: function ( value ) {
-+								setAttributes( { variant: value } );
-+							},
-+						} )
-+					)
-+				),
-+				el(
-+					'div',
-+					{ className: 'negarin-icon-btn-editor-preview' },
-+					ServerSideRender
-+						? el( ServerSideRender, {
-+								block: 'negarin/icon-button',
-+								attributes: attributes,
-+						  } )
-+						: null
-+				)
-+			);
-+		},
-+		save: function () {
-+			return null;
-+		},
-+	} );
-+} )(
-+	window.wp.blocks,
-+	window.wp.element,
-+	window.wp.blockEditor,
-+	window.wp.components,
-+	window.wp.i18n,
-+	window.wp.serverSideRender
-+);
-diff --git a/inc/blocks/icon-button/render.php b/inc/blocks/icon-button/render.php
++document.addEventListener('added_to_cart', () => {
++  window.negarinShowCartAddedModal();
++});
+diff --git a/assets/js/size-select.js b/assets/js/size-select.js
+index c8bb1b2..ade6dc7 100644
+--- a/assets/js/size-select.js
++++ b/assets/js/size-select.js
+@@ -42,7 +42,7 @@ export function negarinSizeSelect({ productId, options }) {
+         if (!res.ok) throw new Error(data.message || 'خطایی رخ داد.');
+ 
+         applyFragments(data.fragments);
+-        window.negarinToast(data.message, 'success');
++        window.negarinShowCartAddedModal();
+         this.selected = null;
+         this.$dispatch('negarin:cart-added');
+       } catch (e) {
+diff --git a/assets/js/toast.js b/assets/js/toast.js
+index dd4d9d1..8bddf3c 100644
+--- a/assets/js/toast.js
++++ b/assets/js/toast.js
+@@ -7,12 +7,19 @@
+  *     from their own REST endpoint.
+  *  2. Parsed: everything else that still calls WooCommerce's own
+  *     wc_add_notice() the ordinary way (coupons, cart quantity updates,
+- *     checkout validation, the native shop-loop AJAX add-to-cart button)
+- *     ends up in the hidden `#negarin-wc-notices` container
+- *     (inc/hooks/notices.php) instead of an inline page section.
+- *     `parseNoticeContainer()` reads it, toasts each `<li>`, and empties
+- *     it — run once on every page load/Turbo visit, and again whenever
+- *     assets/js/fragments.js applies a fresh AJAX fragment.
++ *     checkout validation) ends up in the hidden `#negarin-wc-notices`
++ *     container (inc/hooks/notices.php) instead of an inline page
++ *     section. `parseNoticeContainer()` reads it, toasts each `<li>`,
++ *     and empties it — run once on every page load/Turbo visit, and
++ *     again whenever assets/js/fragments.js applies a fresh AJAX
++ *     fragment.
++ *
++ * Per the 2026-09 decision, a successful add-to-cart no longer toasts at
++ * all — assets/js/cart-added-modal.js opens a confirmation modal instead.
++ * The native shop-loop/single-product `added_to_cart` event still runs
++ * `parseNoticeContainer()` here (skipping just the plain success notice)
++ * so any other notice riding along with it — a stock/backorder info
++ * message, say — still gets toasted.
+  */
+ 
+ const DEFAULT_DURATION = 10000;
+@@ -41,7 +48,7 @@ function textWithoutLinks(el) {
+   return clone.textContent.trim();
+ }
+ 
+-function parseNoticeContainer() {
++function parseNoticeContainer({ skipSuccess = false } = {}) {
+   const container = document.getElementById('negarin-wc-notices');
+   if (!container) return;
+ 
+@@ -51,9 +58,14 @@ function parseNoticeContainer() {
+   });
+ 
+   // Success/info notices: each is its own standalone element — no <ul>/<li> involved.
+-  container.querySelectorAll('.woocommerce-message').forEach((el) => {
+-    window.negarinToast(textWithoutLinks(el), 'success');
+-  });
++  // skipSuccess: the added_to_cart caller passes this — that plain success
++  // notice is exactly what assets/js/cart-added-modal.js's modal now shows
++  // instead of a toast.
++  if (!skipSuccess) {
++    container.querySelectorAll('.woocommerce-message').forEach((el) => {
++      window.negarinToast(textWithoutLinks(el), 'success');
++    });
++  }
+   container.querySelectorAll('.woocommerce-info').forEach((el) => {
+     window.negarinToast(textWithoutLinks(el), 'info');
+   });
+@@ -71,7 +83,7 @@ function initToastGlobal() {
+ 
+ initToastGlobal();
+ 
+-document.addEventListener('DOMContentLoaded', parseNoticeContainer);
+-document.addEventListener('turbo:load', parseNoticeContainer);
+-document.addEventListener('negarin:fragments-updated', parseNoticeContainer);
+-document.addEventListener('added_to_cart', parseNoticeContainer);
++document.addEventListener('DOMContentLoaded', () => parseNoticeContainer());
++document.addEventListener('turbo:load', () => parseNoticeContainer());
++document.addEventListener('negarin:fragments-updated', () => parseNoticeContainer());
++document.addEventListener('added_to_cart', () => parseNoticeContainer({ skipSuccess: true }));
+diff --git a/footer.php b/footer.php
+index d3bc2aa..0dd782e 100644
+--- a/footer.php
++++ b/footer.php
+@@ -18,6 +18,7 @@ endif;
+ ?>
+ 
+ <?php get_template_part( 'template-parts/components/toast-container' ); ?>
++<?php get_template_part( 'template-parts/components/cart-added-modal' ); ?>
+ 
+ <?php wp_footer(); ?>
+ </body>
+diff --git a/template-parts/components/cart-added-modal.php b/template-parts/components/cart-added-modal.php
 new file mode 100644
-index 0000000..b9d7434
+index 0000000..b651669
 --- /dev/null
-+++ b/inc/blocks/icon-button/render.php
-@@ -0,0 +1,75 @@
++++ b/template-parts/components/cart-added-modal.php
+@@ -0,0 +1,60 @@
 +<?php
 +/**
-+ * Server-side render for negarin/icon-button.
++ * "به سبد خرید اضافه شد" — included once in footer.php, same as
++ * toast-container.php. Opens on the `negarin:cart-added-modal` window
++ * event, which assets/js/cart-added-modal.js dispatches after every
++ * *successful* add-to-cart (native shop-loop/single-product AJAX button,
++ * or the size-select REST endpoint via assets/js/size-select.js). Per the
++ * 2026-09 decision this replaces the toast that used to confirm the same
++ * thing — see toast.js for the notice-parsing flow this supersedes.
 + *
-+ * Wired via block.json's "render" key, so WordPress includes this file
-+ * automatically with $attributes / $content / $block already in scope —
-+ * no render_callback registration needed.
-+ *
-+ * @var array    $attributes Block attributes.
-+ * @var string   $content    Unused; this is a fully dynamic block.
-+ * @var WP_Block $block      Block instance.
++ * Same bottom-sheet-on-mobile / centered-dialog-on-desktop pattern as
++ * size-select-modal.php. Self-contained `x-data` — unlike that modal,
++ * nothing else on the page needs to read or set this state.
 + *
 + * @package Negarin
 + */
@@ -211,194 +172,43 @@ index 0000000..b9d7434
 +if ( ! defined( 'ABSPATH' ) ) {
 +	exit;
 +}
-+
-+$text          = isset( $attributes['text'] ) ? trim( (string) $attributes['text'] ) : '';
-+$url           = isset( $attributes['url'] ) ? (string) $attributes['url'] : '';
-+$icon_key      = isset( $attributes['icon'] ) ? (string) $attributes['icon'] : 'none';
-+$icon_position = ( isset( $attributes['iconPosition'] ) && 'before' === $attributes['iconPosition'] ) ? 'before' : 'after';
-+$variant       = isset( $attributes['variant'] ) ? (string) $attributes['variant'] : 'solid';
-+$link_target   = isset( $attributes['linkTarget'] ) ? (string) $attributes['linkTarget'] : '_self';
-+$rel           = isset( $attributes['rel'] ) ? (string) $attributes['rel'] : '';
-+
-+if ( '' === $text ) {
-+	return;
-+}
-+
-+$variant_classes = array(
-+	'outline'       => 'btn--outline',
-+	'outline-white' => 'btn--outline-white',
-+);
-+$variant_class = $variant_classes[ $variant ] ?? 'btn--solid';
-+
-+$icon_svg = class_exists( '\Negarin\Services\IconButtonBlock' )
-+	? \Negarin\Services\IconButtonBlock::icon_svg( $icon_key )
-+	: '';
-+
-+if ( '_blank' === $link_target && '' === $rel ) {
-+	$rel = 'noopener noreferrer';
-+}
-+
-+$wrapper_attributes = get_block_wrapper_attributes( array( 'class' => 'negarin-icon-btn-wrap' ) );
 +?>
-+<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
-+	<?php if ( '' !== $url ) : ?>
-+		<a
-+			href="<?php echo esc_url( $url ); ?>"
-+			<?php echo '_blank' === $link_target ? 'target="_blank"' : ''; ?>
-+			<?php echo $rel ? 'rel="' . esc_attr( $rel ) . '"' : ''; ?>
-+			class="btn <?php echo esc_attr( $variant_class ); ?> negarin-icon-btn gap-2"
-+		>
-+			<?php if ( $icon_svg && 'before' === $icon_position ) : ?>
-+				<span class="negarin-icon-btn__icon" aria-hidden="true"><?php echo $icon_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-+			<?php endif; ?>
-+			<span class="negarin-icon-btn__label"><?php echo esc_html( $text ); ?></span>
-+			<?php if ( $icon_svg && 'after' === $icon_position ) : ?>
-+				<span class="negarin-icon-btn__icon" aria-hidden="true"><?php echo $icon_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-+			<?php endif; ?>
-+		</a>
-+	<?php else : ?>
-+		<span class="btn <?php echo esc_attr( $variant_class ); ?> negarin-icon-btn gap-2">
-+			<?php if ( $icon_svg && 'before' === $icon_position ) : ?>
-+				<span class="negarin-icon-btn__icon" aria-hidden="true"><?php echo $icon_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-+			<?php endif; ?>
-+			<span class="negarin-icon-btn__label"><?php echo esc_html( $text ); ?></span>
-+			<?php if ( $icon_svg && 'after' === $icon_position ) : ?>
-+				<span class="negarin-icon-btn__icon" aria-hidden="true"><?php echo $icon_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-+			<?php endif; ?>
-+		</span>
-+	<?php endif; ?>
++<div
++	x-data="{ open: false }"
++	@negarin:cart-added-modal.window="open = true"
++	x-show="open"
++	x-cloak
++	class="fixed inset-0 z-[60] flex items-end md:items-center justify-center"
++>
++	<div class="absolute inset-0 bg-black/50" @click="open = false"></div>
++
++	<div
++		class="relative bg-white w-full md:max-w-md md:mx-4 rounded-t-2xl md:rounded-sm p-6 md:p-8 text-right"
++		@click.outside="open = false"
++		x-transition:enter="duration-200 ease-out"
++		x-transition:enter-start="opacity-0 translate-y-4 md:translate-y-0 md:scale-95"
++		x-transition:enter-end="opacity-100 translate-y-0 md:scale-100"
++		x-transition:leave="duration-150 ease-in"
++		x-transition:leave-start="opacity-100"
++		x-transition:leave-end="opacity-0"
++	>
++		<div class="flex items-center justify-between pb-4 border-b border-negarin-line mb-6">
++			<h3 class="font-serif text-base md:text-xl order-1 flex items-center gap-2">
++				<span class="shrink-0 flex items-center justify-center size-7 rounded-full bg-emerald-100 text-emerald-600">
++					<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
++				</span>
++				<?php esc_html_e( 'به سبد خرید اضافه شد', 'negarin' ); ?>
++			</h3>
++			<button type="button" @click="open = false" aria-label="<?php esc_attr_e( 'بستن', 'negarin' ); ?>" class="text-2xl leading-none order-2">&times;</button>
++		</div>
++
++		<div class="flex flex-col md:flex-row gap-3">
++			<a href="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>" class="btn btn--outline flex-1 text-center">
++				<?php esc_html_e( 'ادامه خرید', 'negarin' ); ?>
++			</a>
++			<a href="<?php echo esc_url( wc_get_cart_url() ); ?>" class="btn btn--solid flex-1 text-center">
++				<?php esc_html_e( 'تکمیل خرید', 'negarin' ); ?>
++			</a>
++		</div>
++	</div>
 +</div>
-diff --git a/inc/services/IconButtonBlock.php b/inc/services/IconButtonBlock.php
-new file mode 100644
-index 0000000..8dc293d
---- /dev/null
-+++ b/inc/services/IconButtonBlock.php
-@@ -0,0 +1,128 @@
-+<?php
-+/**
-+ * Registers the "دکمه آیکن‌دار" (Icon Button) native Gutenberg block.
-+ *
-+ * This lives outside the WooCommerce space entirely — it's for plain
-+ * WordPress pages built in the block editor (e.g. "درباره ما") that need
-+ * a CTA button with an icon next to the label, styled with the exact same
-+ * .btn / .btn--solid classes used everywhere else in the theme.
-+ *
-+ * @package Negarin
-+ */
-+
-+namespace Negarin\Services;
-+
-+if ( ! defined( 'ABSPATH' ) ) {
-+	exit;
-+}
-+
-+class IconButtonBlock {
-+
-+	/**
-+	 * Icons offered to editors, keyed the same way as negarin_social_icon().
-+	 * Only platforms that already have real artwork there are listed —
-+	 * add a label here the moment a new SVG lands in that helper.
-+	 */
-+	private const ICON_LABELS = array(
-+		'instagram' => 'اینستاگرام',
-+		'telegram'  => 'تلگرام',
-+		'bale'      => 'بله',
-+	);
-+
-+	public function __construct() {
-+		add_action( 'init', array( $this, 'register_block' ) );
-+		add_filter( 'block_categories_all', array( $this, 'add_block_category' ) );
-+		add_action( 'enqueue_block_editor_assets', array( $this, 'enqueue_editor_assets' ) );
-+	}
-+
-+	/**
-+	 * Groups the block under its own "نگارین" heading in the inserter
-+	 * instead of dumping it into "Widgets".
-+	 */
-+	public function add_block_category( array $categories ): array {
-+		return array_merge(
-+			array(
-+				array(
-+					'slug'  => 'negarin',
-+					'title' => __( 'نگارین', 'negarin' ),
-+				),
-+			),
-+			$categories
-+		);
-+	}
-+
-+	public function register_block(): void {
-+		wp_register_script(
-+			'negarin-icon-button-editor',
-+			NEGARIN_URI . '/inc/blocks/icon-button/index.js',
-+			array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n', 'wp-server-side-render' ),
-+			NEGARIN_VERSION,
-+			true
-+		);
-+
-+		wp_localize_script(
-+			'negarin-icon-button-editor',
-+			'negarinIconButtonData',
-+			array(
-+				'icons' => $this->available_icons(),
-+			)
-+		);
-+
-+		register_block_type( NEGARIN_DIR . '/inc/blocks/icon-button' );
-+	}
-+
-+	/**
-+	 * Filters ICON_LABELS down to platforms negarin_social_icon() can
-+	 * actually draw right now, so the dropdown never offers a blank icon.
-+	 */
-+	private function available_icons(): array {
-+		$icons = array();
-+
-+		foreach ( self::ICON_LABELS as $key => $label ) {
-+			if ( function_exists( 'negarin_social_icon' ) && '' !== negarin_social_icon( $key ) ) {
-+				$icons[ $key ] = $label;
-+			}
-+		}
-+
-+		return $icons;
-+	}
-+
-+	/**
-+	 * Same SVG artwork used across the site (footer socials, etc.),
-+	 * recolored to follow the button's text color via currentColor
-+	 * instead of the fixed footer-badge gray.
-+	 */
-+	public static function icon_svg( string $key ): string {
-+		if ( '' === $key || 'none' === $key || ! function_exists( 'negarin_social_icon' ) ) {
-+			return '';
-+		}
-+
-+		$svg = negarin_social_icon( $key );
-+
-+		if ( '' === $svg ) {
-+			return '';
-+		}
-+
-+		return str_replace( 'fill="#667085"', 'fill="currentColor"', $svg );
-+	}
-+
-+	/**
-+	 * Loads the theme's compiled Tailwind CSS inside the block editor so
-+	 * the ServerSideRender preview matches the front end exactly — the
-+	 * editor screen never enqueues this file on its own otherwise.
-+	 */
-+	public function enqueue_editor_assets(): void {
-+		$manifest_path = NEGARIN_DIR . '/assets/build/.vite/manifest.json';
-+
-+		if ( ! file_exists( $manifest_path ) ) {
-+			return;
-+		}
-+
-+		$manifest = json_decode( (string) file_get_contents( $manifest_path ), true );
-+		$entry    = $manifest['assets/js/app.js'] ?? null;
-+
-+		if ( ! empty( $entry['css'][0] ) ) {
-+			wp_enqueue_style( 'negarin-app-editor', NEGARIN_URI . '/assets/build/' . $entry['css'][0], array(), NEGARIN_VERSION );
-+		}
-+	}
-+}

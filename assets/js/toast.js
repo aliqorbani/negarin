@@ -7,12 +7,19 @@
  *     from their own REST endpoint.
  *  2. Parsed: everything else that still calls WooCommerce's own
  *     wc_add_notice() the ordinary way (coupons, cart quantity updates,
- *     checkout validation, the native shop-loop AJAX add-to-cart button)
- *     ends up in the hidden `#negarin-wc-notices` container
- *     (inc/hooks/notices.php) instead of an inline page section.
- *     `parseNoticeContainer()` reads it, toasts each `<li>`, and empties
- *     it — run once on every page load/Turbo visit, and again whenever
- *     assets/js/fragments.js applies a fresh AJAX fragment.
+ *     checkout validation) ends up in the hidden `#negarin-wc-notices`
+ *     container (inc/hooks/notices.php) instead of an inline page
+ *     section. `parseNoticeContainer()` reads it, toasts each `<li>`,
+ *     and empties it — run once on every page load/Turbo visit, and
+ *     again whenever assets/js/fragments.js applies a fresh AJAX
+ *     fragment.
+ *
+ * Per the 2026-09 decision, a successful add-to-cart no longer toasts at
+ * all — assets/js/cart-added-modal.js opens a confirmation modal instead.
+ * The native shop-loop/single-product `added_to_cart` event still runs
+ * `parseNoticeContainer()` here (skipping just the plain success notice)
+ * so any other notice riding along with it — a stock/backorder info
+ * message, say — still gets toasted.
  */
 
 const DEFAULT_DURATION = 10000;
@@ -41,7 +48,7 @@ function textWithoutLinks(el) {
   return clone.textContent.trim();
 }
 
-function parseNoticeContainer() {
+function parseNoticeContainer({ skipSuccess = false } = {}) {
   const container = document.getElementById('negarin-wc-notices');
   if (!container) return;
 
@@ -51,9 +58,14 @@ function parseNoticeContainer() {
   });
 
   // Success/info notices: each is its own standalone element — no <ul>/<li> involved.
-  container.querySelectorAll('.woocommerce-message').forEach((el) => {
-    window.negarinToast(textWithoutLinks(el), 'success');
-  });
+  // skipSuccess: the added_to_cart caller passes this — that plain success
+  // notice is exactly what assets/js/cart-added-modal.js's modal now shows
+  // instead of a toast.
+  if (!skipSuccess) {
+    container.querySelectorAll('.woocommerce-message').forEach((el) => {
+      window.negarinToast(textWithoutLinks(el), 'success');
+    });
+  }
   container.querySelectorAll('.woocommerce-info').forEach((el) => {
     window.negarinToast(textWithoutLinks(el), 'info');
   });
@@ -71,7 +83,7 @@ function initToastGlobal() {
 
 initToastGlobal();
 
-document.addEventListener('DOMContentLoaded', parseNoticeContainer);
-document.addEventListener('turbo:load', parseNoticeContainer);
-document.addEventListener('negarin:fragments-updated', parseNoticeContainer);
-document.addEventListener('added_to_cart', parseNoticeContainer);
+document.addEventListener('DOMContentLoaded', () => parseNoticeContainer());
+document.addEventListener('turbo:load', () => parseNoticeContainer());
+document.addEventListener('negarin:fragments-updated', () => parseNoticeContainer());
+document.addEventListener('added_to_cart', () => parseNoticeContainer({ skipSuccess: true }));

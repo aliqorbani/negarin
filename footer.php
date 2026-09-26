@@ -18,6 +18,7 @@ endif;
 ?>
 
 <?php get_template_part( 'template-parts/components/toast-container' ); ?>
+<?php get_template_part( 'template-parts/components/cart-added-modal' ); ?>
 
 <?php wp_footer(); ?>
 </body>
