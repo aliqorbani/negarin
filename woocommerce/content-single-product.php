@@ -71,14 +71,20 @@ if ( ! is_singular( 'product' ) ) {
 
 			<div class="order-4">
 				<?php
-				get_template_part(
-					'template-parts/components/accordion-item',
-					null,
-					array(
-						'title'   => __( 'مشخصات محصول', 'negarin' ),
-						'content' => get_field( 'specifications' ),
-					)
-				);
+                $specifications = get_field( 'specifications' );
+
+                $content = ! empty( $specifications )
+                        ? $specifications
+                        : get_the_content();
+
+                get_template_part(
+                        'template-parts/components/accordion-item',
+                        null,
+                        array(
+                                'title'   => __( 'مشخصات محصول', 'negarin' ),
+                                'content' => $content,
+                        )
+                );
 				get_template_part(
 					'template-parts/components/accordion-item',
 					null,

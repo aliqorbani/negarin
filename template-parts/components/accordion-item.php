@@ -24,7 +24,5 @@ if ( ! $title || ! $content ) {
 		<span><?php echo esc_html( $title ); ?></span>
 		<span class="text-lg leading-none" x-text="open ? '−' : '+'"></span>
 	</button>
-	<div x-show="open" x-transition class="pb-4 text-sm opacity-75 leading-8">
-		<?php echo wp_kses_post( $content ); ?>
-	</div>
+	<div x-show="open" x-transition class="pb-4 text-sm leading-8"><?php echo wp_kses_post( $content ); ?></div>
 </div>
