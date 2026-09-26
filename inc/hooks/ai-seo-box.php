@@ -24,6 +24,7 @@
  * 5) برای کاهش latency، در هر generation فقط مدل انتخاب‌شده + یک fallback امتحان می‌شوند.
  */
 
+return;
 if (!function_exists('ai_seo_get_model_choices')) {
 
     // ─── لیست مدل‌ها ───
