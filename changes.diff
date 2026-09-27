@@ -1,15 +1,84 @@
+diff --git a/404.php b/404.php
+new file mode 100644
+index 0000000..377db88
+--- /dev/null
++++ b/404.php
+@@ -0,0 +1,31 @@
++<?php
++/**
++ * 404 template.
++ *
++ * @package Negarin
++ */
++
++if ( ! defined( 'ABSPATH' ) ) {
++	exit;
++}
++
++get_header();
++?>
++<main id="main-content" class="container max-w-2xl mx-auto px-4 py-20 md:py-28 text-center">
++	<p class="font-serif text-6xl md:text-8xl mb-6 opacity-20">۴۰۴</p>
++	<h1 class="font-serif text-xl md:text-2xl mb-4"><?php esc_html_e( 'صفحه مورد نظر پیدا نشد', 'negarin' ); ?></h1>
++	<p class="opacity-70 mb-10"><?php esc_html_e( 'ممکن است این صفحه حذف شده یا آدرس آن اشتباه وارد شده باشد.', 'negarin' ); ?></p>
++
++	<div class="max-w-sm mx-auto mb-10">
++		<?php get_search_form(); ?>
++	</div>
++
++	<div class="flex flex-col sm:flex-row justify-center gap-3">
++		<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="btn btn--solid"><?php esc_html_e( 'بازگشت به صفحه اصلی', 'negarin' ); ?></a>
++		<?php if ( function_exists( 'wc_get_page_permalink' ) ) : ?>
++			<a href="<?php echo esc_url( wc_get_page_permalink( 'shop' ) ); ?>" class="btn btn--outline"><?php esc_html_e( 'مشاهده فروشگاه', 'negarin' ); ?></a>
++		<?php endif; ?>
++	</div>
++</main>
++<?php
++get_footer();
+diff --git a/assets/css/admin.css b/assets/css/admin.css
+index ca2b15b..c1778e2 100644
+--- a/assets/css/admin.css
++++ b/assets/css/admin.css
+@@ -2,3 +2,15 @@
+   direction: ltr;
+   display: inline-block;
+ }
++
++/* Contact-form submissions list (inc/services/ContactForm.php) — bolds
++   unread rows and flags them, same idea as an email inbox. */
++.negarin-contact-unread .row-title {
++  font-weight: 700;
++}
++.negarin-contact-unread .row-title::after {
++  content: " (جدید)";
++  color: #AA2B2B;
++  font-weight: 400;
++  font-size: 11px;
++}
 diff --git a/assets/js/app.js b/assets/js/app.js
-index f9195f1..fb64df9 100644
+index f9195f1..14c7829 100644
 --- a/assets/js/app.js
 +++ b/assets/js/app.js
-@@ -13,6 +13,7 @@ import { negarinToastStore } from './toast.js';
+@@ -11,8 +11,11 @@ import { negarinSizeSelect } from './size-select.js';
+ import { negarinSearch } from './search.js';
+ import { negarinToastStore } from './toast.js';
  import { negarinCheckoutForm } from './checkout.js';
++import { negarinContactForm } from './contact-form.js';
++import { negarinFooterMessage } from './footer-message.js';
  import './ajax-cart.js';
  import './cart.js';
 +import './cart-added-modal.js';
  import './header-offset.js';
  
  window.Alpine = Alpine;
+@@ -21,4 +24,6 @@ Alpine.data('negarinOtp', negarinOtp);
+ Alpine.data('negarinSizeSelect', negarinSizeSelect);
+ Alpine.data('negarinCheckoutForm', negarinCheckoutForm);
+ Alpine.data('negarinSearch', negarinSearch);
++Alpine.data('negarinContactForm', negarinContactForm);
++Alpine.data('negarinFooterMessage', negarinFooterMessage);
+ Alpine.start();
+\ No newline at end of file
 diff --git a/assets/js/cart-added-modal.js b/assets/js/cart-added-modal.js
 new file mode 100644
 index 0000000..fcb64fe
@@ -52,6 +121,142 @@ index 0000000..fcb64fe
 +document.addEventListener('added_to_cart', () => {
 +  window.negarinShowCartAddedModal();
 +});
+diff --git a/assets/js/contact-form.js b/assets/js/contact-form.js
+new file mode 100644
+index 0000000..3c95cb9
+--- /dev/null
++++ b/assets/js/contact-form.js
+@@ -0,0 +1,81 @@
++/**
++ * Alpine component for the contact form
++ * (template-parts/components/contact-form.php, used by
++ * templates/page-contact.php). Talks to inc/services/ContactForm.php
++ * (submit) and inc/services/Captcha.php (self-hosted image captcha — no
++ * reCAPTCHA/hCaptcha dependency).
++ */
++export function negarinContactForm() {
++  return {
++    fields: { name: '', phone: '', email: '', subject: '', message: '', website: '' },
++    captchaToken: '',
++    captchaImage: '',
++    captchaAnswer: '',
++    loadingCaptcha: false,
++    submitting: false,
++    fieldErrors: {},
++    sent: false,
++
++    init() {
++      this.loadCaptcha();
++    },
++
++    async loadCaptcha() {
++      this.loadingCaptcha = true;
++      try {
++        const res = await fetch(`${negarinData.restUrl}captcha`);
++        const data = await res.json();
++        if (!res.ok) throw new Error(data.message || 'خطا در بارگذاری کد امنیتی.');
++
++        this.captchaToken = data.token;
++        this.captchaImage = data.image;
++        this.captchaAnswer = '';
++      } catch (e) {
++        window.negarinToast(e.message, 'error');
++      } finally {
++        this.loadingCaptcha = false;
++      }
++    },
++
++    async submit() {
++      if (this.submitting) return;
++
++      this.submitting = true;
++      this.fieldErrors = {};
++
++      try {
++        const res = await fetch(`${negarinData.restUrl}contact/submit`, {
++          method: 'POST',
++          headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': negarinData.nonce },
++          body: JSON.stringify({
++            name: this.fields.name,
++            phone: this.fields.phone,
++            email: this.fields.email,
++            subject: this.fields.subject,
++            message: this.fields.message,
++            website: this.fields.website,
++            captcha_token: this.captchaToken,
++            captcha_answer: this.captchaAnswer,
++          }),
++        });
++        const data = await res.json();
++
++        if (!res.ok) {
++          this.fieldErrors = data.data?.errors || {};
++          if (!Object.keys(this.fieldErrors).length) {
++            throw new Error(data.message || 'ارسال پیام با خطا مواجه شد.');
++          }
++          await this.loadCaptcha(); // Wrong/expired code is consumed either way — fetch a new one for the retry.
++          return;
++        }
++
++        this.sent = true;
++      } catch (e) {
++        window.negarinToast(e.message, 'error');
++        await this.loadCaptcha();
++      } finally {
++        this.submitting = false;
++      }
++    },
++  };
++}
+diff --git a/assets/js/footer-message.js b/assets/js/footer-message.js
+new file mode 100644
+index 0000000..c740a2c
+--- /dev/null
++++ b/assets/js/footer-message.js
+@@ -0,0 +1,43 @@
++/**
++ * Alpine component for the footer "برای نگارین بنویسید" mini form
++ * (template-parts/footer/site-footer.php). Submits to
++ * inc/services/FooterMessage.php over REST instead of a real form
++ * POST + redirect, so sending a message doesn't reload the page.
++ */
++export function negarinFooterMessage() {
++  return {
++    message: '',
++    website: '',
++    submitting: false,
++    status: null, // 'sent' | 'empty' | null
++
++    async submit() {
++      if (this.submitting) return;
++
++      if (!this.message.trim()) {
++        this.status = 'empty';
++        return;
++      }
++
++      this.submitting = true;
++      this.status = null;
++
++      try {
++        const res = await fetch(`${negarinData.restUrl}footer-message`, {
++          method: 'POST',
++          headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': negarinData.nonce },
++          body: JSON.stringify({ message: this.message, website: this.website }),
++        });
++        const data = await res.json();
++        if (!res.ok) throw new Error(data.message || 'ارسال پیام با خطا مواجه شد.');
++
++        this.status = 'sent';
++        this.message = '';
++      } catch (e) {
++        window.negarinToast(e.message, 'error');
++      } finally {
++        this.submitting = false;
++      }
++    },
++  };
++}
 diff --git a/assets/js/size-select.js b/assets/js/size-select.js
 index c8bb1b2..ade6dc7 100644
 --- a/assets/js/size-select.js
@@ -146,6 +351,608 @@ index d3bc2aa..0dd782e 100644
  
  <?php wp_footer(); ?>
  </body>
+diff --git a/functions.php b/functions.php
+index 475e051..f818f66 100644
+--- a/functions.php
++++ b/functions.php
+@@ -89,6 +89,8 @@ add_action(
+         new \Negarin\Services\BlogFields();
+         new \Negarin\Services\Seo();
+         new \Negarin\Services\FooterMessage();
++        new \Negarin\Services\Captcha();
++        new \Negarin\Services\ContactForm();
+         new \Negarin\Services\BuildCleaner();
+         new \Negarin\Services\IconButtonBlock();
+     }
+diff --git a/inc/services/Captcha.php b/inc/services/Captcha.php
+new file mode 100644
+index 0000000..1e8d23c
+--- /dev/null
++++ b/inc/services/Captcha.php
+@@ -0,0 +1,146 @@
++<?php
++/**
++ * Self-hosted image CAPTCHA — no Google reCAPTCHA/hCaptcha dependency.
++ * Renders a distorted numeric code as a PNG (plain GD, no TTF font file),
++ * keyed by a one-time token stored in a transient.
++ *
++ * GET  /wp-json/negarin/v1/captcha  -> { token, image } (image: base64 PNG data URI)
++ * verify( $token, $answer )         -> bool, and always consumes the token
++ *                                      (one-time use, matches the front-end's
++ *                                      "fetch a fresh captcha after every
++ *                                      submit" behaviour — assets/js/contact-form.js)
++ *
++ * Currently only used by inc/services/ContactForm.php, but verify() is
++ * public/static so any other form can reuse the same captcha later.
++ *
++ * @package Negarin
++ */
++
++namespace Negarin\Services;
++
++use WP_REST_Response;
++use WP_Error;
++
++if ( ! defined( 'ABSPATH' ) ) {
++	exit;
++}
++
++class Captcha {
++
++	private const CODE_LENGTH = 5;
++	private const TTL         = 10 * MINUTE_IN_SECONDS;
++	private const WIDTH       = 170;
++	private const HEIGHT      = 60;
++
++	public function __construct() {
++		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
++	}
++
++	public function register_routes(): void {
++		register_rest_route(
++			'negarin/v1',
++			'/captcha',
++			array(
++				'methods'             => 'GET',
++				'callback'            => array( $this, 'handle_issue' ),
++				'permission_callback' => '__return_true',
++			)
++		);
++	}
++
++	/**
++	 * @return WP_REST_Response|WP_Error
++	 */
++	public function handle_issue() {
++		if ( ! extension_loaded( 'gd' ) ) {
++			return new WP_Error( 'negarin_captcha_unavailable', __( 'قابلیت کد امنیتی روی این سرور در دسترس نیست.', 'negarin' ), array( 'status' => 500 ) );
++		}
++
++		$code  = self::random_code();
++		$token = wp_generate_password( 32, false );
++
++		set_transient( 'negarin_captcha_' . $token, $code, self::TTL );
++
++		return new WP_REST_Response(
++			array(
++				'token' => $token,
++				'image' => 'data:image/png;base64,' . base64_encode( self::render_image( $code ) ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- raw image bytes, not obfuscated code.
++			),
++			200
++		);
++	}
++
++	/**
++	 * Checks $answer against the code stored for $token and, either way,
++	 * deletes the transient — a token is only ever good for one attempt.
++	 */
++	public static function verify( string $token, string $answer ): bool {
++		$token = sanitize_text_field( $token );
++		if ( '' === $token ) {
++			return false;
++		}
++
++		$key      = 'negarin_captcha_' . $token;
++		$expected = get_transient( $key );
++		delete_transient( $key );
++
++		if ( false === $expected ) {
++			return false; // Expired, already used, or never issued.
++		}
++
++		return hash_equals( (string) $expected, trim( (string) $answer ) );
++	}
++
++	private static function random_code(): string {
++		$code = '';
++		for ( $i = 0; $i < self::CODE_LENGTH; $i++ ) {
++			$code .= (string) wp_rand( 0, 9 );
++		}
++		return $code;
++	}
++
++	/**
++	 * Plain GD, no TTF font file — imagestring()'s built-in bitmap fonts
++	 * keep this dependency-free, at the cost of characters that can't be
++	 * rotated/skewed. Kept light on noise on purpose: anything heavier
++	 * started fighting with the (already thin) bitmap-font digits for
++	 * legibility in testing. Good enough to stop casual scripted spam,
++	 * not a hardened anti-bot measure.
++	 */
++	private static function render_image( string $code ): string {
++		$image = imagecreatetruecolor( self::WIDTH, self::HEIGHT );
++		$bg    = imagecolorallocate( $image, 249, 250, 251 );
++		imagefilledrectangle( $image, 0, 0, self::WIDTH, self::HEIGHT, $bg );
++
++		for ( $i = 0; $i < 3; $i++ ) {
++			$line = imagecolorallocate( $image, wp_rand( 215, 235 ), wp_rand( 215, 235 ), wp_rand( 215, 235 ) );
++			imageline( $image, wp_rand( 0, self::WIDTH ), wp_rand( 0, self::HEIGHT ), wp_rand( 0, self::WIDTH ), wp_rand( 0, self::HEIGHT ), $line );
++		}
++
++		for ( $i = 0; $i < 80; $i++ ) {
++			$dot = imagecolorallocate( $image, wp_rand( 210, 235 ), wp_rand( 210, 235 ), wp_rand( 210, 235 ) );
++			imagesetpixel( $image, wp_rand( 0, self::WIDTH ), wp_rand( 0, self::HEIGHT ), $dot );
++		}
++
++		$chars   = str_split( $code );
++		$spacing = intdiv( self::WIDTH, count( $chars ) + 1 );
++
++		foreach ( $chars as $i => $char ) {
++			$color = imagecolorallocate( $image, wp_rand( 20, 70 ), wp_rand( 20, 70 ), wp_rand( 20, 70 ) );
++			$x     = $spacing * ( $i + 1 ) - 6 + wp_rand( -3, 3 );
++			$y     = wp_rand( 14, 20 );
++			// Drawn twice with a 1px offset to fake a bolder weight —
++			// GD's built-in bitmap font (font size 5, the largest
++			// available to imagestring()) is otherwise quite thin.
++			imagestring( $image, 5, (int) $x + 1, (int) $y, $char, $color );
++			imagestring( $image, 5, (int) $x, (int) $y, $char, $color );
++		}
++
++		ob_start();
++		imagepng( $image );
++		$bytes = ob_get_clean();
++		imagedestroy( $image );
++
++		return (string) $bytes;
++	}
++}
+diff --git a/inc/services/ContactForm.php b/inc/services/ContactForm.php
+new file mode 100644
+index 0000000..f48eede
+--- /dev/null
++++ b/inc/services/ContactForm.php
+@@ -0,0 +1,310 @@
++<?php
++/**
++ * "تماس با ما" contact form. Each submission is stored as a
++ * `negarin_contact_msg` post — viewable, searchable, and deletable from a
++ * normal wp-admin list screen, no custom DB table needed. Front end:
++ * templates/page-contact.php + template-parts/components/contact-form.php
++ * + assets/js/contact-form.js. Self-hosted CAPTCHA verification via
++ * Services/Captcha.php — no reCAPTCHA/hCaptcha dependency.
++ *
++ * POST /wp-json/negarin/v1/contact/submit
++ *   body: { name, phone, email, subject, message, website, captcha_token, captcha_answer }
++ *
++ * Admin list adds phone/email/subject/message columns, bolds unread rows,
++ * and shows an unread count badge on the menu item (same "awaiting-mod"
++ * style WordPress core uses for pending comments) — read is marked the
++ * moment an admin opens a submission.
++ *
++ * @package Negarin
++ */
++
++namespace Negarin\Services;
++
++use WP_REST_Request;
++use WP_REST_Response;
++use WP_Error;
++use WP_Post;
++use WP_Query;
++
++if ( ! defined( 'ABSPATH' ) ) {
++	exit;
++}
++
++class ContactForm {
++
++	public const POST_TYPE = 'negarin_contact_msg';
++
++	public function __construct() {
++		add_action( 'init', array( $this, 'register_post_type' ) );
++		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
++		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
++
++		add_filter( 'manage_' . self::POST_TYPE . '_posts_columns', array( $this, 'admin_columns' ) );
++		add_action( 'manage_' . self::POST_TYPE . '_posts_custom_column', array( $this, 'render_admin_column' ), 10, 2 );
++		add_filter( 'post_class', array( $this, 'unread_row_class' ), 10, 3 );
++
++		add_action( 'admin_menu', array( $this, 'add_unread_badge' ), 999 );
++		add_action( 'load-post.php', array( $this, 'mark_read_on_open' ) );
++	}
++
++	public function register_post_type(): void {
++		register_post_type(
++			self::POST_TYPE,
++			array(
++				'labels'              => array(
++					'name'          => __( 'پیام‌های تماس با ما', 'negarin' ),
++					'singular_name' => __( 'پیام تماس', 'negarin' ),
++					'menu_name'     => __( 'تماس با ما', 'negarin' ),
++					'edit_item'     => __( 'مشاهده پیام', 'negarin' ),
++					'view_item'     => __( 'مشاهده پیام', 'negarin' ),
++					'search_items'  => __( 'جستجوی پیام‌ها', 'negarin' ),
++					'not_found'     => __( 'پیامی یافت نشد.', 'negarin' ),
++				),
++				'public'              => false,
++				'show_ui'             => true,
++				'show_in_menu'        => true,
++				'show_in_admin_bar'   => false,
++				'show_in_rest'        => false, // Classic editor screen — plain title/content is all a submission needs.
++				'menu_icon'           => 'dashicons-email-alt',
++				'supports'            => array( 'title', 'editor' ),
++				'capability_type'     => 'post',
++				'map_meta_cap'        => true,
++				'capabilities'        => array(
++					'create_posts' => 'do_not_allow', // Submissions only ever come from the front-end form — hides "Add New".
++				),
++				'has_archive'         => false,
++				'rewrite'             => false,
++				'exclude_from_search' => true,
++			)
++		);
++	}
++
++	public function register_routes(): void {
++		register_rest_route(
++			'negarin/v1',
++			'/contact/submit',
++			array(
++				'methods'             => 'POST',
++				'callback'            => array( $this, 'handle_submit' ),
++				'permission_callback' => '__return_true',
++			)
++		);
++	}
++
++	/**
++	 * @return WP_REST_Response|WP_Error
++	 */
++	public function handle_submit( WP_REST_Request $request ) {
++		// Honeypot: a hidden field a bot fills in, a human never does.
++		// Pretend success so a bot never learns it was caught.
++		if ( ! empty( $request->get_param( 'website' ) ) ) {
++			return new WP_REST_Response( array( 'success' => true ), 200 );
++		}
++
++		$name    = sanitize_text_field( (string) $request->get_param( 'name' ) );
++		$phone   = sanitize_text_field( (string) $request->get_param( 'phone' ) );
++		$email   = sanitize_email( (string) $request->get_param( 'email' ) );
++		$subject = sanitize_text_field( (string) $request->get_param( 'subject' ) );
++		$message = sanitize_textarea_field( (string) $request->get_param( 'message' ) );
++
++		$errors = array();
++
++		if ( '' === trim( $name ) ) {
++			$errors['name'] = __( 'نام را وارد کنید.', 'negarin' );
++		}
++		if ( '' === trim( $phone ) && '' === trim( $email ) ) {
++			$errors['phone'] = __( 'شماره تماس یا ایمیل را وارد کنید.', 'negarin' );
++		}
++		if ( '' !== (string) $request->get_param( 'email' ) && ! is_email( $email ) ) {
++			$errors['email'] = __( 'ایمیل معتبر نیست.', 'negarin' );
++		}
++		if ( '' === trim( $message ) ) {
++			$errors['message'] = __( 'پیام را وارد کنید.', 'negarin' );
++		}
++		if ( ! Captcha::verify( (string) $request->get_param( 'captcha_token' ), (string) $request->get_param( 'captcha_answer' ) ) ) {
++			$errors['captcha'] = __( 'کد امنیتی درست نیست.', 'negarin' );
++		}
++
++		if ( $errors ) {
++			return new WP_Error(
++				'negarin_contact_invalid',
++				__( 'لطفاً موارد مشخص‌شده را اصلاح کنید.', 'negarin' ),
++				array(
++					'status' => 400,
++					'errors' => $errors,
++				)
++			);
++		}
++
++		$post_id = wp_insert_post(
++			array(
++				'post_type'    => self::POST_TYPE,
++				'post_status'  => 'publish',
++				'post_title'   => $name,
++				'post_content' => $message,
++			),
++			true
++		);
++
++		if ( is_wp_error( $post_id ) ) {
++			return new WP_Error( 'negarin_contact_failed', __( 'ثبت پیام با خطا مواجه شد.', 'negarin' ), array( 'status' => 500 ) );
++		}
++
++		update_post_meta( $post_id, '_negarin_contact_phone', $phone );
++		update_post_meta( $post_id, '_negarin_contact_email', $email );
++		update_post_meta( $post_id, '_negarin_contact_subject', $subject );
++		update_post_meta( $post_id, '_negarin_contact_read', '' ); // Unread until an admin opens it.
++
++		wp_mail(
++			get_option( 'admin_email' ),
++			sprintf(
++				/* translators: %s: sender name */
++				__( 'پیام جدید فرم تماس با ما از طرف %s', 'negarin' ),
++				$name
++			),
++			sprintf(
++				"%1\$s\n\n%2\$s: %3\$s\n%4\$s: %5\$s\n\n%6\$s",
++				$message,
++				__( 'تلفن', 'negarin' ),
++				$phone ? $phone : '-',
++				__( 'ایمیل', 'negarin' ),
++				$email ? $email : '-',
++				admin_url( 'edit.php?post_type=' . self::POST_TYPE )
++			)
++		);
++
++		return new WP_REST_Response( array( 'success' => true ), 200 );
++	}
++
++	// --- Admin edit screen ---------------------------------------------
++
++	public function add_meta_box(): void {
++		add_meta_box(
++			'negarin_contact_details',
++			__( 'اطلاعات تماس', 'negarin' ),
++			array( $this, 'render_meta_box' ),
++			self::POST_TYPE,
++			'normal',
++			'high'
++		);
++	}
++
++	public function render_meta_box( WP_Post $post ): void {
++		$phone   = get_post_meta( $post->ID, '_negarin_contact_phone', true );
++		$email   = get_post_meta( $post->ID, '_negarin_contact_email', true );
++		$subject = get_post_meta( $post->ID, '_negarin_contact_subject', true );
++		?>
++		<p><strong><?php esc_html_e( 'تلفن:', 'negarin' ); ?></strong> <?php echo esc_html( $phone ? $phone : '—' ); ?></p>
++		<p><strong><?php esc_html_e( 'ایمیل:', 'negarin' ); ?></strong>
++			<?php if ( $email ) : ?>
++				<a href="<?php echo esc_attr( 'mailto:' . $email ); ?>"><?php echo esc_html( $email ); ?></a>
++			<?php else : ?>
++				—
++			<?php endif; ?>
++		</p>
++		<p><strong><?php esc_html_e( 'موضوع:', 'negarin' ); ?></strong> <?php echo esc_html( $subject ? $subject : '—' ); ?></p>
++		<?php
++	}
++
++	public function mark_read_on_open(): void {
++		if ( ! isset( $_GET['post'], $_GET['action'] ) || 'edit' !== $_GET['action'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
++			return;
++		}
++
++		$post_id = absint( $_GET['post'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
++		if ( self::POST_TYPE !== get_post_type( $post_id ) ) {
++			return;
++		}
++
++		update_post_meta( $post_id, '_negarin_contact_read', '1' );
++	}
++
++	// --- Admin list screen -----------------------------------------------
++
++	public function admin_columns( array $columns ): array {
++		$new = array();
++		foreach ( $columns as $key => $label ) {
++			$new[ $key ] = ( 'title' === $key ) ? __( 'نام', 'negarin' ) : $label;
++			if ( 'title' === $key ) {
++				$new['negarin_phone']   = __( 'تلفن', 'negarin' );
++				$new['negarin_email']   = __( 'ایمیل', 'negarin' );
++				$new['negarin_subject'] = __( 'موضوع', 'negarin' );
++				$new['negarin_message'] = __( 'پیام', 'negarin' );
++			}
++		}
++		return $new;
++	}
++
++	public function render_admin_column( string $column, int $post_id ): void {
++		switch ( $column ) {
++			case 'negarin_phone':
++				echo esc_html( get_post_meta( $post_id, '_negarin_contact_phone', true ) ?: '—' );
++				break;
++			case 'negarin_email':
++				$email = get_post_meta( $post_id, '_negarin_contact_email', true );
++				if ( $email ) {
++					echo '<a href="' . esc_attr( 'mailto:' . $email ) . '">' . esc_html( $email ) . '</a>';
++				} else {
++					echo '—';
++				}
++				break;
++			case 'negarin_subject':
++				echo esc_html( get_post_meta( $post_id, '_negarin_contact_subject', true ) ?: '—' );
++				break;
++			case 'negarin_message':
++				echo esc_html( wp_trim_words( get_post_field( 'post_content', $post_id ), 12 ) );
++				break;
++		}
++	}
++
++	/**
++	 * Adds a marker class the admin list row's unread styling
++	 * (assets/css/admin.css) hooks off of.
++	 *
++	 * @param string[] $classes
++	 * @param string[] $css_class
++	 */
++	public function unread_row_class( array $classes, $css_class, int $post_id ): array {
++		if ( is_admin() && self::POST_TYPE === get_post_type( $post_id ) && '' === get_post_meta( $post_id, '_negarin_contact_read', true ) ) {
++			$classes[] = 'negarin-contact-unread';
++		}
++		return $classes;
++	}
++
++	public function add_unread_badge(): void {
++		global $menu;
++
++		$count = $this->count_unread();
++		if ( ! $count || ! is_array( $menu ) ) {
++			return;
++		}
++
++		foreach ( $menu as $key => $item ) {
++			if ( isset( $item[2] ) && 'edit.php?post_type=' . self::POST_TYPE === $item[2] ) {
++				$menu[ $key ][0] .= ' <span class="awaiting-mod count-' . absint( $count ) . '"><span class="pending-count">' . absint( $count ) . '</span></span>';
++				break;
++			}
++		}
++	}
++
++	private function count_unread(): int {
++		$query = new WP_Query(
++			array(
++				'post_type'      => self::POST_TYPE,
++				'post_status'    => 'publish',
++				'posts_per_page' => -1,
++				'fields'         => 'ids',
++				'no_found_rows'  => true,
++				'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
++					array(
++						'key'     => '_negarin_contact_read',
++						'value'   => '',
++						'compare' => '=',
++					),
++				),
++			)
++		);
++
++		return count( $query->posts );
++	}
++}
+diff --git a/inc/services/FooterMessage.php b/inc/services/FooterMessage.php
+index 4923d79..926404b 100644
+--- a/inc/services/FooterMessage.php
++++ b/inc/services/FooterMessage.php
+@@ -1,14 +1,22 @@
+ <?php
+ /**
+- * Footer "برای نگارین بنویسید" mini contact form. Not a full contact page
+- * (that's a separate future page) — just a quick one-field message sender
+- * matching the footer design.
++ * Footer "برای نگارین بنویسید" mini contact form. Not the full contact
++ * page (that's templates/page-contact.php) — just a quick one-field
++ * message sender matching the footer design. AJAX-only
++ * (assets/js/footer-message.js, template-parts/footer/site-footer.php) —
++ * no full-page POST/redirect fallback.
++ *
++ * POST /wp-json/negarin/v1/footer-message  body: { message, website }
+  *
+  * @package Negarin
+  */
+ 
+ namespace Negarin\Services;
+ 
++use WP_REST_Request;
++use WP_REST_Response;
++use WP_Error;
++
+ if ( ! defined( 'ABSPATH' ) ) {
+ 	exit;
+ }
+@@ -16,25 +24,35 @@ if ( ! defined( 'ABSPATH' ) ) {
+ class FooterMessage {
+ 
+ 	public function __construct() {
+-		add_action( 'admin_post_negarin_footer_message', array( $this, 'handle_submit' ) );
+-		add_action( 'admin_post_nopriv_negarin_footer_message', array( $this, 'handle_submit' ) );
++		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
+ 	}
+ 
+-	public function handle_submit(): void {
+-		check_admin_referer( 'negarin_footer_message' );
++	public function register_routes(): void {
++		register_rest_route(
++			'negarin/v1',
++			'/footer-message',
++			array(
++				'methods'             => 'POST',
++				'callback'            => array( $this, 'handle_submit' ),
++				'permission_callback' => '__return_true',
++			)
++		);
++	}
+ 
+-		$message = sanitize_textarea_field( wp_unslash( $_POST['message'] ?? '' ) );
+-		$referer = wp_get_referer() ?: home_url( '/' );
++	/**
++	 * @return WP_REST_Response|WP_Error
++	 */
++	public function handle_submit( WP_REST_Request $request ) {
++		$message = sanitize_textarea_field( (string) $request->get_param( 'message' ) );
+ 
+ 		if ( '' === trim( $message ) ) {
+-			wp_safe_redirect( add_query_arg( 'negarin_msg', 'empty', $referer ) );
+-			exit;
++			return new WP_Error( 'negarin_footer_message_empty', __( 'لطفاً پیام خود را بنویسید.', 'negarin' ), array( 'status' => 400 ) );
+ 		}
+ 
+ 		// Simple honeypot: a hidden field a bot would fill in, a human never would.
+-		if ( ! empty( $_POST['website'] ) ) {
+-			wp_safe_redirect( add_query_arg( 'negarin_msg', 'sent', $referer ) );
+-			exit;
++		// Pretend success so a bot never learns it was caught.
++		if ( ! empty( $request->get_param( 'website' ) ) ) {
++			return new WP_REST_Response( array( 'success' => true ), 200 );
+ 		}
+ 
+ 		$sent = wp_mail(
+@@ -47,7 +65,10 @@ class FooterMessage {
+ 			$message
+ 		);
+ 
+-		wp_safe_redirect( add_query_arg( 'negarin_msg', $sent ? 'sent' : 'failed', $referer ) );
+-		exit;
++		if ( ! $sent ) {
++			return new WP_Error( 'negarin_footer_message_failed', __( 'ارسال پیام با خطا مواجه شد.', 'negarin' ), array( 'status' => 500 ) );
++		}
++
++		return new WP_REST_Response( array( 'success' => true ), 200 );
+ 	}
+ }
+diff --git a/searchform.php b/searchform.php
+new file mode 100644
+index 0000000..aeeb180
+--- /dev/null
++++ b/searchform.php
+@@ -0,0 +1,25 @@
++<?php
++/**
++ * Custom search form markup — matches `.negarin-field-input` styling used
++ * everywhere else, instead of WordPress's unstyled default. Currently only
++ * shown on 404.php.
++ *
++ * @package Negarin
++ */
++
++if ( ! defined( 'ABSPATH' ) ) {
++	exit;
++}
++?>
++<form role="search" method="get" class="flex gap-2" action="<?php echo esc_url( home_url( '/' ) ); ?>">
++	<label class="sr-only" for="negarin-search-field"><?php esc_html_e( 'جستجو', 'negarin' ); ?></label>
++	<input
++		type="search"
++		id="negarin-search-field"
++		name="s"
++		class="negarin-field-input flex-1"
++		placeholder="<?php esc_attr_e( 'جستجو در محصولات...', 'negarin' ); ?>"
++		value="<?php echo esc_attr( get_search_query() ); ?>"
++	>
++	<button type="submit" class="btn btn--solid shrink-0"><?php esc_html_e( 'جستجو', 'negarin' ); ?></button>
++</form>
 diff --git a/template-parts/components/cart-added-modal.php b/template-parts/components/cart-added-modal.php
 new file mode 100644
 index 0000000..b651669
@@ -212,3 +1019,194 @@ index 0000000..b651669
 +		</div>
 +	</div>
 +</div>
+diff --git a/template-parts/components/contact-form.php b/template-parts/components/contact-form.php
+new file mode 100644
+index 0000000..538e723
+--- /dev/null
++++ b/template-parts/components/contact-form.php
+@@ -0,0 +1,86 @@
++<?php
++/**
++ * Contact form — used on the "تماس با ما" page template
++ * (templates/page-contact.php). Self-hosted CAPTCHA
++ * (inc/services/Captcha.php) + REST submit endpoint
++ * (inc/services/ContactForm.php) via assets/js/contact-form.js — no
++ * Google reCAPTCHA/hCaptcha dependency. Submissions are stored as
++ * `negarin_contact_msg` posts, visible from the "تماس با ما" wp-admin menu.
++ *
++ * @package Negarin
++ */
++
++if ( ! defined( 'ABSPATH' ) ) {
++	exit;
++}
++?>
++<div x-data="negarinContactForm()" class="max-w-xl mx-auto">
++
++	<template x-if="!sent">
++		<form @submit.prevent="submit()" class="space-y-6 text-right">
++
++			<input type="text" x-model="fields.website" class="hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
++
++			<div>
++				<label class="block text-sm mb-2"><?php esc_html_e( 'نام', 'negarin' ); ?></label>
++				<input type="text" x-model="fields.name" class="negarin-field-input" :class="{ 'border-negarin-red': fieldErrors.name }">
++				<p class="text-negarin-red text-sm mt-2" x-show="fieldErrors.name" x-text="fieldErrors.name"></p>
++			</div>
++
++			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
++				<div>
++					<label class="block text-sm mb-2"><?php esc_html_e( 'تلفن', 'negarin' ); ?></label>
++					<input type="tel" x-model="fields.phone" dir="ltr" class="negarin-field-input" :class="{ 'border-negarin-red': fieldErrors.phone }">
++					<p class="text-negarin-red text-sm mt-2" x-show="fieldErrors.phone" x-text="fieldErrors.phone"></p>
++				</div>
++				<div>
++					<label class="block text-sm mb-2"><?php esc_html_e( 'ایمیل (اختیاری)', 'negarin' ); ?></label>
++					<input type="email" x-model="fields.email" dir="ltr" class="negarin-field-input" :class="{ 'border-negarin-red': fieldErrors.email }">
++					<p class="text-negarin-red text-sm mt-2" x-show="fieldErrors.email" x-text="fieldErrors.email"></p>
++				</div>
++			</div>
++
++			<div>
++				<label class="block text-sm mb-2"><?php esc_html_e( 'موضوع (اختیاری)', 'negarin' ); ?></label>
++				<input type="text" x-model="fields.subject" class="negarin-field-input">
++			</div>
++
++			<div>
++				<label class="block text-sm mb-2"><?php esc_html_e( 'پیام', 'negarin' ); ?></label>
++				<textarea
++					x-model="fields.message"
++					rows="5"
++					class="block w-full border bg-white px-4 py-3 text-base text-[#333] focus:outline-none focus:border-negarin-ink"
++					:class="fieldErrors.message ? 'border-negarin-red' : 'border-negarin-line'"
++				></textarea>
++				<p class="text-negarin-red text-sm mt-2" x-show="fieldErrors.message" x-text="fieldErrors.message"></p>
++			</div>
++
++			<div>
++				<label class="block text-sm mb-2"><?php esc_html_e( 'کد امنیتی تصویر', 'negarin' ); ?></label>
++				<div class="flex items-center gap-3 flex-wrap">
++					<div class="shrink-0 border border-negarin-line bg-negarin-cream leading-[0]">
++						<img :src="captchaImage" width="170" height="60" alt="<?php esc_attr_e( 'کد امنیتی', 'negarin' ); ?>" class="block">
++					</div>
++					<button type="button" @click="loadCaptcha()" :disabled="loadingCaptcha" class="text-sm underline shrink-0">
++						<?php esc_html_e( 'تغییر کد', 'negarin' ); ?>
++					</button>
++					<input type="text" x-model="captchaAnswer" inputmode="numeric" dir="ltr" placeholder="<?php esc_attr_e( 'کد را وارد کنید', 'negarin' ); ?>" class="negarin-field-input flex-1 min-w-[140px]" :class="{ 'border-negarin-red': fieldErrors.captcha }">
++				</div>
++				<p class="text-negarin-red text-sm mt-2" x-show="fieldErrors.captcha" x-text="fieldErrors.captcha"></p>
++			</div>
++
++			<button type="submit" class="btn btn--solid w-full" :disabled="submitting">
++				<span x-show="!submitting"><?php esc_html_e( 'ارسال پیام', 'negarin' ); ?></span>
++				<span x-show="submitting"><?php esc_html_e( 'در حال ارسال...', 'negarin' ); ?></span>
++			</button>
++		</form>
++	</template>
++
++	<template x-if="sent">
++		<div class="text-center py-10">
++			<p class="text-lg mb-2"><?php esc_html_e( 'پیام شما ارسال شد.', 'negarin' ); ?></p>
++			<p class="opacity-70 text-sm"><?php esc_html_e( 'به‌زودی با شما تماس می‌گیریم.', 'negarin' ); ?></p>
++		</div>
++	</template>
++</div>
+diff --git a/template-parts/footer/site-footer.php b/template-parts/footer/site-footer.php
+index 7fb3f7d..db31f17 100644
+--- a/template-parts/footer/site-footer.php
++++ b/template-parts/footer/site-footer.php
+@@ -10,8 +10,6 @@
+ if ( ! defined( 'ABSPATH' ) ) {
+ 	exit;
+ }
+-
+-$message_status = isset( $_GET['negarin_msg'] ) ? sanitize_key( wp_unslash( $_GET['negarin_msg'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+ ?>
+ <footer class="negarin-footer border-t bg-white mt-16 pt-16 pb-10 text-center relative">
+ 	<div class="max-w-lg mx-auto px-4">
+@@ -50,33 +48,26 @@ $message_status = isset( $_GET['negarin_msg'] ) ? sanitize_key( wp_unslash( $_GE
+ 			</nav>
+ 		<?php endif; ?>
+ 
+-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="mb-8">
+-			<input type="hidden" name="action" value="negarin_footer_message">
+-			<?php wp_nonce_field( 'negarin_footer_message' ); ?>
+-			<input type="text" name="website" value="" class="hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
++		<form @submit.prevent="submit()" x-data="negarinFooterMessage()" class="mb-8">
++			<input type="text" x-model="website" class="hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
+ 
+ 			<p class="text-sm md:text-lg mb-2 md:mb-4">
+ 				<?php esc_html_e( 'برای نگارین بنویسید ، با اشتیاق خونده میشه :)', 'negarin' ); ?>
+ 			</p>
+ 
+-			<?php if ( 'sent' === $message_status ) : ?>
+-				<p class="text-sm text-emerald-600 mb-3"><?php esc_html_e( 'پیام شما ارسال شد، ممنون از شما :)', 'negarin' ); ?></p>
+-			<?php elseif ( 'failed' === $message_status ) : ?>
+-				<p class="text-sm text-red-600 mb-3"><?php esc_html_e( 'ارسال پیام با خطا مواجه شد.', 'negarin' ); ?></p>
+-			<?php elseif ( 'empty' === $message_status ) : ?>
+-				<p class="text-sm text-red-600 mb-3"><?php esc_html_e( 'لطفاً پیام خود را بنویسید.', 'negarin' ); ?></p>
+-			<?php endif; ?>
++			<p class="text-sm text-emerald-600 mb-3" x-show="status === 'sent'"><?php esc_html_e( 'پیام شما ارسال شد، ممنون از شما :)', 'negarin' ); ?></p>
++			<p class="text-sm text-red-600 mb-3" x-show="status === 'empty'"><?php esc_html_e( 'لطفاً پیام خود را بنویسید.', 'negarin' ); ?></p>
+ 
+ 			<div class="flex sm:flex-row items-stretch gap-3">
+ 				<textarea title="اینجا بنویسید..."
+-					type="text"
+-                          rows="1"
+-					name="message"
++					x-model="message"
++					rows="1"
+ 					placeholder="<?php esc_attr_e( 'اینجا بنویسید...', 'negarin' ); ?>"
+ 					class="flex-1 border border-negarin-gray rounded-sm px-4 py-3 text-sm"
+                 ></textarea>
+-				<button type="submit" class="btn btn--solid">
+-					<?php esc_html_e( 'ارسال', 'negarin' ); ?>
++				<button type="submit" class="btn btn--solid" :disabled="submitting">
++					<span x-show="!submitting"><?php esc_html_e( 'ارسال', 'negarin' ); ?></span>
++					<span x-show="submitting"><?php esc_html_e( 'در حال ارسال...', 'negarin' ); ?></span>
+ 				</button>
+ 			</div>
+ 		</form>
+diff --git a/templates/page-contact.php b/templates/page-contact.php
+new file mode 100644
+index 0000000..187e94a
+--- /dev/null
++++ b/templates/page-contact.php
+@@ -0,0 +1,37 @@
++<?php
++/**
++ * Template Name: تماس با ما
++ *
++ * Assign this template to a page from Page Attributes. The page's own
++ * content stays fully admin-editable (address, phone, map embed, opening
++ * hours — anything, via the normal editor) and is shown above the fold;
++ * this template only adds the contact form itself
++ * (template-parts/components/contact-form.php) below it.
++ *
++ * @package Negarin
++ */
++
++if ( ! defined( 'ABSPATH' ) ) {
++	exit;
++}
++
++get_header();
++?>
++<main id="main-content" class="container max-w-7xl mx-auto px-4 py-10 md:py-16">
++	<?php
++	while ( have_posts() ) :
++		the_post();
++		?>
++		<h1 class="font-serif text-2xl md:text-3xl text-center mb-10"><?php the_title(); ?></h1>
++
++		<?php if ( get_the_content() ) : ?>
++			<div class="max-w-xl mx-auto leading-8 mb-12 text-center">
++				<?php the_content(); ?>
++			</div>
++		<?php endif; ?>
++	<?php endwhile; ?>
++
++	<?php get_template_part( 'template-parts/components/contact-form' ); ?>
++</main>
++<?php
++get_footer();

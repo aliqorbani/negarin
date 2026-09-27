@@ -89,6 +89,8 @@ add_action(
         new \Negarin\Services\BlogFields();
         new \Negarin\Services\Seo();
         new \Negarin\Services\FooterMessage();
+        new \Negarin\Services\Captcha();
+        new \Negarin\Services\ContactForm();
         new \Negarin\Services\BuildCleaner();
         new \Negarin\Services\IconButtonBlock();
     }

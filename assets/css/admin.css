@@ -2,3 +2,15 @@
   direction: ltr;
   display: inline-block;
 }
+
+/* Contact-form submissions list (inc/services/ContactForm.php) — bolds
+   unread rows and flags them, same idea as an email inbox. */
+.negarin-contact-unread .row-title {
+  font-weight: 700;
+}
+.negarin-contact-unread .row-title::after {
+  content: " (جدید)";
+  color: #AA2B2B;
+  font-weight: 400;
+  font-size: 11px;
+}
