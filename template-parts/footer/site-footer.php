@@ -33,7 +33,13 @@ if ( ! defined( 'ABSPATH' ) ) {
             <?php endif; ?>
         </a>
 
-        <?php if ( has_nav_menu( 'footer' ) ) : ?>
+        <?php
+        $show_site_footer = false;
+        if(function_exists('is_woocommerce') && ! is_woocommerce() && ! is_front_page()){
+            $show_site_footer = true;
+        }
+        if( $show_site_footer ) :
+        if ( has_nav_menu( 'footer' ) ) : ?>
             <nav class="mb-6" aria-label="<?php esc_attr_e( 'لینک‌های فوتر', 'negarin' ); ?>">
                 <?php
                 wp_nav_menu(
@@ -72,7 +78,9 @@ if ( ! defined( 'ABSPATH' ) ) {
             </div>
         </form>
 
-        <?php $socials = negarin_option( 'socials', array() ); ?>
+        <?php
+        endif;
+        $socials = negarin_option( 'socials', array() ); ?>
         <?php if ( $socials ) : ?>
             <div class="flex items-center justify-center gap-4 mb-8">
                 <?php foreach ( $socials as $social ) : ?>
