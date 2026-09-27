@@ -38,9 +38,9 @@ if ( ! class_exists( 'WooCommerce' ) ) {
                     $size_label  = negarin_cart_item_size_label( $cart_item, $product );
                     ?>
                     <div class="flex items-center gap-3">
-                        <?php echo wp_kses_post( $product->get_image( 'thumbnail', array( 'class' => 'w-12 h-12 object-cover rounded-sm shrink-0' ) ) ); ?>
+                        <?php echo wp_kses_post( $product->get_image( 'thumbnail', array( 'class' => 'w-12 object-cover rounded-sm shrink-0' ) ) ); ?>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm truncate"><?php echo esc_html( $product->get_name() ); ?></p>
+                            <p class="text-sm truncate"><?php echo esc_html( $product->get_title() ); ?></p>
                             <?php if ( $size_label ) : ?>
                                 <p class="text-xs opacity-60"><?php echo esc_html( $size_label ); ?></p>
                             <?php endif; ?>

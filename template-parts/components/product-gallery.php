@@ -46,7 +46,7 @@ $main_image_id  = $product->get_image_id();
 	<?php endif; ?>
 
 	<div
-		class="flex md:block overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none scrollbar-none"
+		class="flex md:block overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none scrollbar-none" style="direction:ltr"
 		@scroll.debounce.100ms="onScroll($el)"
 	>
 		<?php foreach ( $attachment_ids as $index => $attachment_id ) : ?>
@@ -62,7 +62,7 @@ $main_image_id  = $product->get_image_id();
 	</div>
 
 	<?php if ( count( $attachment_ids ) > 1 ) : ?>
-		<div class="flex md:hidden items-center justify-center gap-1.5 py-3">
+		<div class="flex md:hidden items-center justify-center gap-1.5 py-3 flex-row-reverse">
 			<?php foreach ( $attachment_ids as $index => $attachment_id ) : ?>
 				<span
 					class="w-1.5 h-1.5 rounded-full transition-colors"
