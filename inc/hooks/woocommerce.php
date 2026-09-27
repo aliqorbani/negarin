@@ -156,6 +156,11 @@ add_filter('woocommerce_save_account_details_required_fields', function ($requir
     return $required_fields;
 });
 
+add_filter('woocommerce_get_shop_page_permalink',function($permalink){
+    $permalink = get_permalink(get_page_by_path('shop'));
+    return $permalink;
+});
+
 /**
  * moortak-wc-split-payment: this theme already prints every gateway's
  * description itself, right under its title
