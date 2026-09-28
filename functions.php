@@ -93,5 +93,7 @@ add_action(
         new \Negarin\Services\ContactForm();
         new \Negarin\Services\BuildCleaner();
         new \Negarin\Services\IconButtonBlock();
+        new \Negarin\Services\SmsNewsletter();
+        new \Negarin\Services\SmsNewsletterBlock();
     }
 );

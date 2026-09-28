@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 2,
+  "name": "negarin/sms-newsletter",
+  "title": "عضویت در خبرنامه پیامکی",
+  "category": "negarin",
+  "icon": "email-alt",
+  "description": "فرم ثبت شماره موبایل برای اطلاع‌رسانی پیامکی محصولات جدید. ارسال واقعی پیامک دستی و از پنل وردپرس انجام می‌شود، نه خودکار.",
+  "keywords": [ "خبرنامه", "پیامک", "sms", "newsletter", "اشتراک" ],
+  "textdomain": "negarin",
+  "attributes": {
+    "title": { "type": "string", "default": "عضویت در خبرنامه پیامکی" },
+    "description": { "type": "string", "default": "شماره موبایلت رو بزن تا به محض انتشار محصولات جدید بهت پیامک بدیم." },
+    "buttonText": { "type": "string", "default": "عضویت" }
+  },
+  "supports": {
+    "html": false,
+    "align": [ "wide", "full" ]
+  },
+  "editorScript": "negarin-sms-newsletter-editor",
+  "render": "file:./render.php"
+}
