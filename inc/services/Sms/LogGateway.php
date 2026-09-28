@@ -27,7 +27,7 @@ class LogGateway implements SmsGatewayInterface {
                 array( 'source' => 'negarin-otp' )
             );
         }
-        file_put_contents(__DIR__.'/otps.log',$log.PHP_EOL,FILE_APPEND);
+//        file_put_contents(__DIR__.'/otps.log',$log.PHP_EOL,FILE_APPEND);
 
         error_log(
             $log

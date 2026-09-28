@@ -16,18 +16,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         <a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="inline-block mb-8">
             <?php if ( has_custom_logo() ) : ?>
-
                 <?php
                 $custom_logo_id = get_theme_mod( 'custom_logo' );
                 $logo_url = wp_get_attachment_image_url( $custom_logo_id, 'full' );
                 ?>
-
                 <img
                         src="<?php echo esc_url( $logo_url ); ?>"
                         class="logo-image"
                         alt="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>"
                 >
-
             <?php else : ?>
                 <span class="font-serif tracking-[0.35em] text-2xl"><?php bloginfo( 'name' ); ?></span>
             <?php endif; ?>
@@ -53,33 +50,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 ?>
             </nav>
         <?php endif; ?>
-
-        <form @submit.prevent="submit()" x-data="negarinFooterMessage()" class="mb-8">
-            <input type="text" x-model="website" class="hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
-
-            <p class="text-sm md:text-lg mb-2 md:mb-4">
-                <?php esc_html_e( 'برای نگارین بنویسید ، با اشتیاق خونده میشه :)', 'negarin' ); ?>
-            </p>
-
-            <p class="text-sm text-emerald-600 mb-3" x-show="status === 'sent'"><?php esc_html_e( 'پیام شما ارسال شد، ممنون از شما :)', 'negarin' ); ?></p>
-            <p class="text-sm text-red-600 mb-3" x-show="status === 'empty'"><?php esc_html_e( 'لطفاً پیام خود را بنویسید.', 'negarin' ); ?></p>
-
-            <div class="flex sm:flex-row items-stretch gap-3">
-				<textarea title="اینجا بنویسید..."
-                          x-model="message"
-                          rows="1"
-                          placeholder="<?php esc_attr_e( 'اینجا بنویسید...', 'negarin' ); ?>"
-                          class="flex-1 border border-negarin-gray rounded-sm px-4 py-3 text-sm"
-                ></textarea>
-                <button type="submit" class="btn btn--solid" :disabled="submitting">
-                    <span x-show="!submitting"><?php esc_html_e( 'ارسال', 'negarin' ); ?></span>
-                    <span x-show="submitting"><?php esc_html_e( 'در حال ارسال...', 'negarin' ); ?></span>
-                </button>
-            </div>
-        </form>
-
-        <?php
-        endif;
+        <?php endif;
         $socials = negarin_option( 'socials', array() ); ?>
         <?php if ( $socials ) : ?>
             <div class="flex items-center justify-center gap-4 mb-8">

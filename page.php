@@ -19,7 +19,7 @@ $need_article_border = (! is_woocommerce()
 //        && ! is_page(wc_get_page_id( 'myaccount' ))
         );
 $post_classes[] = $need_article_border ? 'md:border' : '';
-$post_classes[] = 'px-3 md:pt-10 md:px-6';
+$post_classes[] = 'px-3 md:pt-10 md:px-6 pt-8';
 get_header();
 
 ?>

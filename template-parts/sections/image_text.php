@@ -23,13 +23,13 @@ $has_image_link = is_array( $image_link ) && ! empty( $image_link['url'] );
 $image_tag       = $has_image_link ? 'a' : 'div';
 ?>
 <section class="negarin-page-section negarin-image-text <?php echo esc_attr( negarin_section_bg_class( $bg ) ); ?>">
-    <div class="container max-w-7xl mx-auto px-4 grid grid-cols-2 gap-10 items-center">
+    <div class="container max-w-7xl mx-auto px-4 grid grid-cols-2 gap-3 md:gap-10 items-center">
 
         <div class="<?php echo esc_attr( $is_image_left ? 'order-2' : 'order-1' ); ?>">
             <<?php echo esc_html( $image_tag ); ?>
             <?php if ( $has_image_link ) : ?>
                 href="<?php echo esc_url( $image_link['url'] ); ?>"
-                <?php echo ! empty( $image_link['target'] ) ? 'target="_blank" rel="noopener"' : ''; ?>
+                <?php echo ! empty( $image_link['target'] ) ? 'target="'.$image_link['target'].'"' : ''; ?>
             <?php endif; ?>
             class="relative overflow-hidden group block"
             >
@@ -51,7 +51,7 @@ $image_tag       = $has_image_link ? 'a' : 'div';
             <h3 class="font-serif text-2xl md:text-3xl mb-4"><?php /*echo esc_html( $title ); */?></h3>
         --><?php /*endif; */?>
         <?php if ( $text ) : ?>
-            <p class="section-image-text"><?php echo esc_html( $text ); ?></p>
+            <div class="section-image-text"><?php echo wpautop( $text ); ?></div>
         <?php endif; ?>
         <?php negarin_link_button( $button, 'btn btn--outline' ); ?>
     </div>

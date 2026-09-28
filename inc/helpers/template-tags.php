@@ -214,3 +214,19 @@ function farsi_numbers( string $value ): string {
         )
     );
 }
+
+function normalize_phone( string $phone ): ?string {
+    $phone = preg_replace( '/\D/', '', $phone );
+    if ( $phone && str_starts_with( $phone, '0' ) ) {
+        return $phone;
+    }
+    if ( $phone && str_starts_with( $phone, '98' ) ) {
+        return '0' . substr( $phone, 2 );
+    }
+    return ( $phone && strlen( $phone ) === 10 ) ? '0' . $phone : null;
+}
+
+function validate_phone( string $phone ): bool {
+    $phone = normalize_phone( $phone );
+    return (bool)$phone;
+}
