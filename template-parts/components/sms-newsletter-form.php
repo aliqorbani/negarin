@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 ?>
-<div x-data="negarinSmsNewsletter()" class="negarin-sms-newsletter max-w-lg">
+<div x-data="negarinSmsNewsletter()" class="negarin-sms-newsletter max-w-md">
 
     <template x-if="!sent">
         <form @submit.prevent="submit()" class="space-y-4 text-right">
@@ -54,8 +54,8 @@ if ( ! defined( 'ABSPATH' ) ) {
     <template x-if="sent">
         <div class="text-center py-6">
             <p
-                class="text-base"
-                x-text="alreadySubscribed ? '<?php echo esc_js( __( 'شما قبلاً عضو این خبرنامه هستید.', 'negarin' ) ); ?>' : '<?php echo esc_js( __( 'ثبت شد! به محض انتشار محصولات جدید بهت خبر می‌دیم.', 'negarin' ) ); ?>'"
+                class="bg-green-100 mb-0 p-4 px-0 text-base text-center"
+                x-text="alreadySubscribed ? '<?php echo esc_js( __( 'شما قبلاً عضو خبرنامه شده‌اید.', 'negarin' ) ); ?>' : '<?php echo esc_js( __( 'ثبت شد! به محض انتشار محصولات جدید بهت خبر می‌دیم.', 'negarin' ) ); ?>'"
             ></p>
         </div>
     </template>
