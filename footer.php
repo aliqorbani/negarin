@@ -12,10 +12,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <?php
 
-//$is_bare_login_screen = function_exists( 'is_account_page' ) && is_account_page() && ! is_user_logged_in();
-//if ( $show_site_footer ) :
+$is_bare_login_screen = function_exists( 'is_account_page' ) && is_account_page() && ! is_edit_account_page() && ! is_user_logged_in();
+if ( $is_bare_login_screen ) :
 	get_template_part( 'template-parts/footer/site-footer' );
-//endif;
+endif;
 ?>
 
 <?php get_template_part( 'template-parts/components/toast-container' ); ?>

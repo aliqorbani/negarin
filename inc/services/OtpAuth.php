@@ -15,6 +15,7 @@ namespace Negarin\Services;
 
 use Negarin\Services\Sms\SmsGatewayInterface;
 use Negarin\Services\Sms\MelliPayamakGateway;
+use Negarin\Services\Sms\MelliPayamakConfig;
 use Negarin\Services\Sms\KavenegarGateway;
 use Negarin\Services\Sms\LogGateway;
 use WP_REST_Request;
@@ -55,9 +56,9 @@ class OtpAuth {
      * the default without touching the OTP flow itself.
      *
      * Auto-detects by configured credentials, in priority order:
-     * MelliPayamak (NEGARIN_MELLIPAYAMAK_API_KEY + NEGARIN_OTP_BODY_ID) ->
-     * Kavenegar (NEGARIN_KAVENEGAR_API_KEY) -> LogGateway (writes the code
-     * to WooCommerce logs + error_log instead of sending a real SMS, so the
+     * MelliPayamak (MelliPayamakConfig::is_ready_for_otp()) -> Kavenegar
+     * (NEGARIN_KAVENEGAR_API_KEY) -> LogGateway (writes the code to
+     * WooCommerce logs + error_log instead of sending a real SMS, so the
      * OTP flow stays testable before any provider credentials exist). Set
      * NEGARIN_OTP_TEST_MODE to true in wp-config.php to force logging even
      * when real credentials are present (useful on staging, to avoid
@@ -69,12 +70,11 @@ class OtpAuth {
         if ( $force_test_mode ) {
             $default_gateway = new LogGateway();
         } else {
-            $mellipayamak_configured = defined( 'NEGARIN_MELLIPAYAMAK_API_KEY' ) && ! empty( NEGARIN_MELLIPAYAMAK_API_KEY )
-                && defined( 'NEGARIN_OTP_BODY_ID' ) && ! empty( NEGARIN_OTP_BODY_ID );
-            $kavenegar_configured    = defined( 'NEGARIN_KAVENEGAR_API_KEY' ) && ! empty( NEGARIN_KAVENEGAR_API_KEY );
+            $mellipayamak_config  = new MelliPayamakConfig();
+            $kavenegar_configured = defined( 'NEGARIN_KAVENEGAR_API_KEY' ) && ! empty( NEGARIN_KAVENEGAR_API_KEY );
 
-            if ( $mellipayamak_configured ) {
-                $default_gateway = new MelliPayamakGateway();
+            if ( $mellipayamak_config->is_ready_for_otp() ) {
+                $default_gateway = new MelliPayamakGateway( $mellipayamak_config );
             } elseif ( $kavenegar_configured ) {
                 $default_gateway = new KavenegarGateway();
             } else {

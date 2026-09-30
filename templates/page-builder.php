@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 get_header();
 ?>
 
-<main id="main-content" class="flex flex-col gap-y-[60px] md:gap-y-[120px]">
+<main id="main-content" class="pt-6 md:pt-0 flex flex-col gap-y-[60px] md:gap-y-[120px]">
 	<?php
 	if ( have_rows( 'sections' ) ) :
 //        file_put_contents(__DIR__.'/sections.log',serialize(get_field('sections')), LOCK_EX);

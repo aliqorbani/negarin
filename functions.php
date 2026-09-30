@@ -60,6 +60,8 @@ $negarin_includes = array(
     '/inc/hooks/notices.php',
     '/inc/hooks/woocommerce.php',
     '/inc/hooks/ai-seo-box.php',
+    '/inc/hooks/bale-notifier.php',
+    '/inc/hooks/sms-notifier.php',
 );
 $negarin_includes = array_unique( $negarin_includes );
 

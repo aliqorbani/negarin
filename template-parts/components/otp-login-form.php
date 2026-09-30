@@ -94,7 +94,7 @@ $welcome_text = negarin_option( 'login_welcome_text', __( "به خانه نگا�
 
     <div class="relative hidden md:block">
         <?php if ( $image ) : ?>
-            <?php negarin_image( $image, 'negarin-hero', 'w-full h-full object-cover', false ); ?>
+            <?php negarin_image( $image, 'full', 'w-full h-full object-cover', false ); ?>
         <?php endif; ?>
     </div>
 </div>

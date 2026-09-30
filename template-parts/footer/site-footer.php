@@ -32,12 +32,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         <?php
         $show_site_footer = false;
-        if(function_exists('is_woocommerce') && ! is_woocommerce() && ! is_front_page()){
+        if(function_exists('is_woocommerce') &&
+                ! is_woocommerce() &&
+                ! is_account_page() &&
+                ! is_front_page() &&
+                ! is_wc_endpoint_url() &&
+                ! is_checkout() &&
+                ! is_cart()
+        ){
             $show_site_footer = true;
         }
         if( $show_site_footer ) :
         if ( has_nav_menu( 'footer' ) ) : ?>
-            <nav class="mb-6" aria-label="<?php esc_attr_e( 'لینک‌های فوتر', 'negarin' ); ?>">
+            <nav class="mb-6" data-check="<?php echo is_woocommerce(); ?>" aria-label="<?php esc_attr_e( 'لینک‌های فوتر', 'negarin' ); ?>">
                 <?php
                 wp_nav_menu(
                         array(
@@ -50,8 +57,11 @@ if ( ! defined( 'ABSPATH' ) ) {
                 ?>
             </nav>
         <?php endif; ?>
-        <?php endif;
-        $socials = negarin_option( 'socials', array() ); ?>
+        <?php endif; ?>
+        <div class="mb-8 text-sm opacity-70">
+            <a class="inline-block bg-amber-50 opacity-25 hover:opacity-100" referrerpolicy='origin' target='_blank' href='https://trustseal.enamad.ir/?id=7620962&Code=F87Th2LK8J7XmMhIT1DESMn2J5jX998Z'><img referrerpolicy='origin' src='https://trustseal.enamad.ir/logo.aspx?id=7620962&Code=F87Th2LK8J7XmMhIT1DESMn2J5jX998Z' alt='' style='cursor:pointer' code='F87Th2LK8J7XmMhIT1DESMn2J5jX998Z'></a>
+        </div>
+        <?php $socials = negarin_option( 'socials', array() ); ?>
         <?php if ( $socials ) : ?>
             <div class="flex items-center justify-center gap-4 mb-8">
                 <?php foreach ( $socials as $social ) : ?>
@@ -66,9 +76,10 @@ if ( ! defined( 'ABSPATH' ) ) {
             <div class="mb-8 text-sm opacity-70"><?php dynamic_sidebar( 'footer-1' ); ?></div>
         <?php endif; ?>
 
+
+
         <p class="text-xs opacity-0">
             &copy; <?php echo esc_html( gmdate( 'Y' ) ); ?> <?php bloginfo( 'name' ); ?> — <?php esc_html_e( 'تمامی حقوق محفوظ است.', 'negarin' ); ?>
         </p>
-        <a style="position:absolute; right:0; bottom:0" referrerpolicy='origin' target='_blank' href='https://trustseal.enamad.ir/?id=7620962&Code=F87Th2LK8J7XmMhIT1DESMn2J5jX998Z'><img referrerpolicy='origin' src='https://trustseal.enamad.ir/logo.aspx?id=7620962&Code=F87Th2LK8J7XmMhIT1DESMn2J5jX998Z' alt='' style='cursor:pointer' code='F87Th2LK8J7XmMhIT1DESMn2J5jX998Z'></a>
     </div>
 </footer>

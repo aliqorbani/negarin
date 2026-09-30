@@ -1,701 +1,280 @@
-diff --git a/assets/js/app.js b/assets/js/app.js
-index a899970..6b9cf9f 100644
---- a/assets/js/app.js
-+++ b/assets/js/app.js
-@@ -14,6 +14,7 @@ import { negarinCheckoutForm } from './checkout.js';
- import { negarinContactForm } from './contact-form.js';
- import { negarinFooterMessage } from './footer-message.js';
- import { negarinProductGallery } from './product-gallery.js';
-+import { negarinSmsNewsletter } from './sms-newsletter.js';
- import './ajax-cart.js';
- import './cart.js';
- import './cart-added-modal.js';
-@@ -28,4 +29,5 @@ Alpine.data('negarinSearch', negarinSearch);
- Alpine.data('negarinContactForm', negarinContactForm);
- Alpine.data('negarinFooterMessage', negarinFooterMessage);
- Alpine.data('negarinProductGallery', negarinProductGallery);
-+Alpine.data('negarinSmsNewsletter', negarinSmsNewsletter);
- Alpine.start();
-\ No newline at end of file
-diff --git a/assets/js/sms-newsletter.js b/assets/js/sms-newsletter.js
-new file mode 100644
-index 0000000..c3b914c
---- /dev/null
-+++ b/assets/js/sms-newsletter.js
-@@ -0,0 +1,49 @@
-+/**
-+ * Alpine component for the SMS "notify me about new products" subscribe
-+ * form (template-parts/components/sms-newsletter-form.php), shared by the
-+ * [negarin_sms_newsletter] shortcode and the negarin/sms-newsletter block.
-+ * Talks to inc/services/SmsNewsletter.php over REST — this only records
-+ * the number; sending the actual SMS blast is a manual step done from
-+ * wp-admin, not triggered by anything here.
-+ */
-+export function negarinSmsNewsletter() {
-+    return {
-+        phone: '',
-+        website: '',
-+        submitting: false,
-+        fieldErrors: {},
-+        sent: false,
-+        alreadySubscribed: false,
-+
-+        async submit() {
-+            if (this.submitting) return;
-+
-+            this.submitting = true;
-+            this.fieldErrors = {};
-+
-+            try {
-+                const res = await fetch(`${negarinData.restUrl}sms-newsletter/subscribe`, {
-+                    method: 'POST',
-+                    headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': negarinData.nonce },
-+                    body: JSON.stringify({ phone: this.phone, website: this.website }),
-+                });
-+                const data = await res.json();
-+
-+                if (!res.ok) {
-+                    this.fieldErrors = data.data?.errors || {};
-+                    if (!Object.keys(this.fieldErrors).length) {
-+                        throw new Error(data.message || 'ثبت شماره با خطا مواجه شد.');
-+                    }
-+                    return;
-+                }
-+
-+                this.alreadySubscribed = !!data.already;
-+                this.sent = true;
-+            } catch (e) {
-+                window.negarinToast(e.message, 'error');
-+            } finally {
-+                this.submitting = false;
-+            }
-+        },
-+    };
-+}
-diff --git a/functions.php b/functions.php
-index f818f66..ef15811 100644
---- a/functions.php
-+++ b/functions.php
-@@ -93,5 +93,7 @@ add_action(
-         new \Negarin\Services\ContactForm();
-         new \Negarin\Services\BuildCleaner();
-         new \Negarin\Services\IconButtonBlock();
-+        new \Negarin\Services\SmsNewsletter();
-+        new \Negarin\Services\SmsNewsletterBlock();
-     }
- );
-\ No newline at end of file
-diff --git a/inc/blocks/sms-newsletter/block.json b/inc/blocks/sms-newsletter/block.json
-new file mode 100644
-index 0000000..c07ca51
---- /dev/null
-+++ b/inc/blocks/sms-newsletter/block.json
-@@ -0,0 +1,22 @@
-+{
-+  "$schema": "https://schemas.wp.org/trunk/block.json",
-+  "apiVersion": 2,
-+  "name": "negarin/sms-newsletter",
-+  "title": "عضویت در خبرنامه پیامکی",
-+  "category": "negarin",
-+  "icon": "email-alt",
-+  "description": "فرم ثبت شماره موبایل برای اطلاع‌رسانی پیامکی محصولات جدید. ارسال واقعی پیامک دستی و از پنل وردپرس انجام می‌شود، نه خودکار.",
-+  "keywords": [ "خبرنامه", "پیامک", "sms", "newsletter", "اشتراک" ],
-+  "textdomain": "negarin",
-+  "attributes": {
-+    "title": { "type": "string", "default": "عضویت در خبرنامه پیامکی" },
-+    "description": { "type": "string", "default": "شماره موبایلت رو بزن تا به محض انتشار محصولات جدید بهت پیامک بدیم." },
-+    "buttonText": { "type": "string", "default": "عضویت" }
-+  },
-+  "supports": {
-+    "html": false,
-+    "align": [ "wide", "full" ]
-+  },
-+  "editorScript": "negarin-sms-newsletter-editor",
-+  "render": "file:./render.php"
-+}
-diff --git a/inc/blocks/sms-newsletter/index.js b/inc/blocks/sms-newsletter/index.js
-new file mode 100644
-index 0000000..234a27a
---- /dev/null
-+++ b/inc/blocks/sms-newsletter/index.js
-@@ -0,0 +1,81 @@
-+/**
-+ * Editor-side registration for negarin/sms-newsletter.
+diff --git a/inc/services/OtpAuth.php b/inc/services/OtpAuth.php
+index 95c3727..ee6a0ee 100644
+--- a/inc/services/OtpAuth.php
++++ b/inc/services/OtpAuth.php
+@@ -15,6 +15,7 @@ namespace Negarin\Services;
+ 
+ use Negarin\Services\Sms\SmsGatewayInterface;
+ use Negarin\Services\Sms\MelliPayamakGateway;
++use Negarin\Services\Sms\MelliPayamakConfig;
+ use Negarin\Services\Sms\KavenegarGateway;
+ use Negarin\Services\Sms\LogGateway;
+ use WP_REST_Request;
+@@ -55,9 +56,9 @@ class OtpAuth {
+      * the default without touching the OTP flow itself.
+      *
+      * Auto-detects by configured credentials, in priority order:
+-     * MelliPayamak (NEGARIN_MELLIPAYAMAK_API_KEY + NEGARIN_OTP_BODY_ID) ->
+-     * Kavenegar (NEGARIN_KAVENEGAR_API_KEY) -> LogGateway (writes the code
+-     * to WooCommerce logs + error_log instead of sending a real SMS, so the
++     * MelliPayamak (MelliPayamakConfig::is_ready_for_otp()) -> Kavenegar
++     * (NEGARIN_KAVENEGAR_API_KEY) -> LogGateway (writes the code to
++     * WooCommerce logs + error_log instead of sending a real SMS, so the
+      * OTP flow stays testable before any provider credentials exist). Set
+      * NEGARIN_OTP_TEST_MODE to true in wp-config.php to force logging even
+      * when real credentials are present (useful on staging, to avoid
+@@ -69,12 +70,11 @@ class OtpAuth {
+         if ( $force_test_mode ) {
+             $default_gateway = new LogGateway();
+         } else {
+-            $mellipayamak_configured = defined( 'NEGARIN_MELLIPAYAMAK_API_KEY' ) && ! empty( NEGARIN_MELLIPAYAMAK_API_KEY )
+-                && defined( 'NEGARIN_OTP_BODY_ID' ) && ! empty( NEGARIN_OTP_BODY_ID );
+-            $kavenegar_configured    = defined( 'NEGARIN_KAVENEGAR_API_KEY' ) && ! empty( NEGARIN_KAVENEGAR_API_KEY );
++            $mellipayamak_config  = new MelliPayamakConfig();
++            $kavenegar_configured = defined( 'NEGARIN_KAVENEGAR_API_KEY' ) && ! empty( NEGARIN_KAVENEGAR_API_KEY );
+ 
+-            if ( $mellipayamak_configured ) {
+-                $default_gateway = new MelliPayamakGateway();
++            if ( $mellipayamak_config->is_ready_for_otp() ) {
++                $default_gateway = new MelliPayamakGateway( $mellipayamak_config );
+             } elseif ( $kavenegar_configured ) {
+                 $default_gateway = new KavenegarGateway();
+             } else {
+diff --git a/inc/services/Sms/MelliPayamakGateway.php b/inc/services/Sms/MelliPayamakGateway.php
+index 4c98dc3..34b02c6 100644
+--- a/inc/services/Sms/MelliPayamakGateway.php
++++ b/inc/services/Sms/MelliPayamakGateway.php
+@@ -1,18 +1,27 @@
+ <?php
+ /**
+- * MelliPayamak pattern-based ("shared") SMS gateway.
++ * MelliPayamak SMS gateway — two send methods against two different
++ * MelliPayamak endpoints:
+  *
+- * Uses the `send/shared` endpoint with a pre-approved body (pattern) whose
+- * single variable is filled with our own OTP code — this keeps code
+- * generation on our side and matches SmsGatewayInterface exactly, the same
+- * way KavenegarGateway does with its lookup template. MelliPayamak's other
+- * endpoint (`send/otp`) generates the code itself and is NOT compatible
+- * with this interface without changing OtpAuth's issue/verify flow, so it
+- * is intentionally not used here.
++ * - send_otp(): the `send/shared` endpoint with a pre-approved body
++ *   (pattern) whose single variable is filled with our own OTP code —
++ *   keeps code generation on our side and matches SmsGatewayInterface
++ *   exactly, the same way KavenegarGateway does with its lookup template.
++ *   MelliPayamak's other OTP endpoint (`send/otp`) generates the code
++ *   itself and is NOT compatible with this interface without changing
++ *   OtpAuth's issue/verify flow, so it is intentionally not used here.
++ * - send_message(): the `send/simple` endpoint for anything that isn't
++ *   an approved pattern — an order-confirmation text, an installment
++ *   reminder, a "new products" newsletter blast, etc. — where the full
++ *   text is written per recipient rather than filled into a template.
++ *   Not part of SmsGatewayInterface (that contract is OTP-only); called
++ *   directly wherever this kind of custom message is needed.
+  *
+- * Credentials are pulled from wp-config constants — never hardcode keys.
+- * define( 'NEGARIN_MELLIPAYAMAK_API_KEY', '...' );
+- * define( 'NEGARIN_OTP_BODY_ID', '...' ); // approved pattern ("bodyId") in the MelliPayamak panel; its {0} placeholder receives the OTP code.
++ * Both send methods go through send_curl(), a single place that POSTs
++ * JSON and turns the raw curl result into a success/failure verdict.
 + *
-+ * Same approach as negarin/icon-button: plain JS against the wp.*
-+ * globals — no JSX, no bundler. The actual form markup lives in
-+ * template-parts/components/sms-newsletter-form.php (shared with the
-+ * [negarin_sms_newsletter] shortcode); this file only edits the three
-+ * text attributes and previews the real PHP output via ServerSideRender.
-+ */
-+( function ( blocks, element, blockEditor, components, i18n, serverSideRender ) {
-+	var el = element.createElement;
-+	var Fragment = element.Fragment;
-+	var __ = i18n.__;
-+
-+	var InspectorControls = blockEditor.InspectorControls;
-+	var PanelBody = components.PanelBody;
-+	var TextControl = components.TextControl;
-+	var TextareaControl = components.TextareaControl;
-+	var ServerSideRender = serverSideRender && ( serverSideRender.default || serverSideRender );
-+
-+	blocks.registerBlockType( 'negarin/sms-newsletter', {
-+		edit: function ( props ) {
-+			var attributes = props.attributes;
-+			var setAttributes = props.setAttributes;
-+
-+			return el(
-+				Fragment,
-+				{},
-+				el(
-+					InspectorControls,
-+					{},
-+					el(
-+						PanelBody,
-+						{ title: __( 'تنظیمات فرم', 'negarin' ), initialOpen: true },
-+						el( TextControl, {
-+							label: __( 'عنوان', 'negarin' ),
-+							value: attributes.title,
-+							onChange: function ( value ) {
-+								setAttributes( { title: value } );
-+							},
-+						} ),
-+						el( TextareaControl, {
-+							label: __( 'توضیحات', 'negarin' ),
-+							value: attributes.description,
-+							onChange: function ( value ) {
-+								setAttributes( { description: value } );
-+							},
-+						} ),
-+						el( TextControl, {
-+							label: __( 'متن دکمه', 'negarin' ),
-+							value: attributes.buttonText,
-+							onChange: function ( value ) {
-+								setAttributes( { buttonText: value } );
-+							},
-+						} )
-+					)
-+				),
-+				el(
-+					'div',
-+					{ className: 'negarin-sms-newsletter-editor' },
-+					ServerSideRender
-+						? el( ServerSideRender, {
-+							block: 'negarin/sms-newsletter',
-+							attributes: attributes,
-+						} )
-+						: null
-+				)
-+			);
-+		},
-+		save: function () {
-+			return null;
-+		},
-+	} );
-+} )(
-+	window.wp.blocks,
-+	window.wp.element,
-+	window.wp.blockEditor,
-+	window.wp.components,
-+	window.wp.i18n,
-+	window.wp.serverSideRender
-+);
-diff --git a/inc/blocks/sms-newsletter/render.php b/inc/blocks/sms-newsletter/render.php
-new file mode 100644
-index 0000000..3eab75d
---- /dev/null
-+++ b/inc/blocks/sms-newsletter/render.php
-@@ -0,0 +1,31 @@
-+<?php
-+/**
-+ * Server-side render for negarin/sms-newsletter.
-+ *
-+ * Wired via block.json's "render" key, so WordPress includes this file
-+ * automatically with $attributes already in scope — no render_callback
-+ * registration needed. Just a thin wrapper around the same
-+ * template-parts/components/sms-newsletter-form.php used by the
-+ * [negarin_sms_newsletter] shortcode (inc/services/SmsNewsletter.php),
-+ * so the block and the shortcode can never drift apart.
-+ *
-+ * @var array $attributes Block attributes.
-+ *
-+ * @package Negarin
-+ */
-+
-+if ( ! defined( 'ABSPATH' ) ) {
++ * Every credential and bodyId is read through MelliPayamakConfig, never
++ * a raw wp-config constant — see that class for where each value lives.
+  *
+  * @package Negarin
+  */
+@@ -20,64 +29,146 @@
+ namespace Negarin\Services\Sms;
+ 
+ if ( ! defined( 'ABSPATH' ) ) {
+-	exit;
 +    exit;
-+}
+ }
+ 
+ class MelliPayamakGateway implements SmsGatewayInterface {
+ 
+-	private const API_BASE = 'https://console.melipayamak.com/api/send/shared/';
++    private const API_BASE        = 'https://console.melipayamak.com/api/send/shared/';
++    private const SIMPLE_API_BASE = 'https://console.melipayamak.com/api/send/simple/';
 +
-+$title       = isset( $attributes['title'] ) ? (string) $attributes['title'] : '';
-+$description = isset( $attributes['description'] ) ? (string) $attributes['description'] : '';
-+$button_text = isset( $attributes['buttonText'] ) && '' !== trim( (string) $attributes['buttonText'] )
-+    ? (string) $attributes['buttonText']
-+    : __( 'عضویت', 'negarin' );
++    private const CONNECT_TIMEOUT = 5;
++    private const TIMEOUT         = 15;
 +
-+$wrapper_attributes = get_block_wrapper_attributes();
-+?>
-+<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
-+    <?php include NEGARIN_DIR . '/template-parts/components/sms-newsletter-form.php'; ?>
-+</div>
-diff --git a/inc/services/SmsNewsletter.php b/inc/services/SmsNewsletter.php
-new file mode 100644
-index 0000000..4813f1d
---- /dev/null
-+++ b/inc/services/SmsNewsletter.php
-@@ -0,0 +1,343 @@
-+<?php
-+/**
-+ * SMS "notify me about new products" subscription. This is NOT tied to
-+ * WooCommerce's product-publish hook — a customer leaves their mobile
-+ * number here, and an admin decides when to actually send an SMS blast
-+ * (manually, from whichever SMS panel is set up). Nothing here fires an
-+ * SMS automatically when a product is published.
-+ *
-+ * Storage: a dedicated `{$wpdb->prefix}negarin_sms_subscribers` table
-+ * (not a custom post type) — a phone number plus a status is all there
-+ * is per subscriber. `status` is soft-delete only ('active' / 'removed')
-+ * — the admin "حذف" action never runs a real DELETE, matching how the
-+ * rest of the project handles removal. That also matters for the UNIQUE
-+ * key on `phone`: resubscribing after a soft-delete reactivates the same
-+ * row instead of colliding with it (see handle_subscribe()).
-+ *
-+ * The theme is already active in production, so table creation can't
-+ * rely on `after_switch_theme` alone (it won't fire again until the
-+ * theme is deactivated/reactivated) — maybe_upgrade_db() runs a cheap
-+ * version check on every load instead and creates/upgrades the table
-+ * if needed.
-+ *
-+ * Frontend: template-parts/components/sms-newsletter-form.php is the
-+ * one form markup, rendered both by the [negarin_sms_newsletter]
-+ * shortcode (registered here) and by the negarin/sms-newsletter block
-+ * (inc/services/SmsNewsletterBlock.php) — same as icon-button, so the
-+ * two can never drift apart.
-+ *
-+ * POST /wp-json/negarin/v1/sms-newsletter/subscribe  body: { phone, website }
-+ *
-+ * @package Negarin
-+ */
-+
-+namespace Negarin\Services;
-+
-+use WP_REST_Request;
-+use WP_REST_Response;
-+use WP_Error;
-+
-+if ( ! defined( 'ABSPATH' ) ) {
-+    exit;
-+}
-+
-+class SmsNewsletter {
-+
-+    const DB_VERSION        = '1.0';
-+    const DB_VERSION_OPTION = 'negarin_sms_subscribers_db_version';
-+    const ADMIN_PAGE_SLUG   = 'negarin-sms-newsletter';
-+    const ADMIN_NONCE       = 'negarin_sms_newsletter_admin';
-+
-+    public function __construct() {
-+        add_action( 'init', array( $this, 'maybe_upgrade_db' ) );
-+        add_action( 'rest_api_init', array( $this, 'register_routes' ) );
-+        add_action( 'init', array( $this, 'register_shortcode' ) );
-+        add_action( 'admin_menu', array( $this, 'register_admin_page' ) );
-+        add_action( 'admin_init', array( $this, 'maybe_handle_admin_actions' ) );
++    private MelliPayamakConfig $config;
+ 
+-	public function send_otp( string $phone, string $code ): bool {
+-		$api_key = defined( 'NEGARIN_MELLIPAYAMAK_API_KEY' ) ? NEGARIN_MELLIPAYAMAK_API_KEY : '';
++    public function __construct( ?MelliPayamakConfig $config = null ) {
++        $this->config = $config ?? new MelliPayamakConfig();
 +    }
-+
-+    public static function table_name(): string {
-+        global $wpdb;
-+        return $wpdb->prefix . 'negarin_sms_subscribers';
-+    }
-+
-+    /**
-+     * Creates/upgrades the subscribers table. Cheap after the first run
-+     * on a given site — get_option() is a single cached lookup, so this
-+     * is effectively one string comparison per request.
-+     */
-+    public function maybe_upgrade_db(): void {
-+        if ( get_option( self::DB_VERSION_OPTION ) === self::DB_VERSION ) {
-+            return;
+ 
+-//        error_log('api_key: ' . $api_key);
++    public function send_otp( string $phone, string $code ): bool {
++        $api_key = $this->config->api_key();
++        $body_id = $this->config->otp_body_id();
+ 
+-		if ( empty( $api_key ) ) {
+-			error_log( 'Negarin: NEGARIN_MELLIPAYAMAK_API_KEY is not defined in wp-config.php' ); // phpcs:ignore
+-			return false;
+-		}
++        if ( '' === $api_key || '' === $body_id ) {
++            return false; // MelliPayamakConfig has already logged which one is missing.
 +        }
 +
-+        global $wpdb;
-+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-+
-+        $table_name      = self::table_name();
-+        $charset_collate = $wpdb->get_charset_collate();
-+
-+        $sql = "CREATE TABLE {$table_name} (
-+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-+            phone VARCHAR(20) NOT NULL,
-+            status VARCHAR(20) NOT NULL DEFAULT 'active',
-+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-+            PRIMARY KEY  (id),
-+            UNIQUE KEY phone (phone)
-+        ) {$charset_collate};";
-+
-+        dbDelta( $sql );
-+
-+        update_option( self::DB_VERSION_OPTION, self::DB_VERSION );
-+    }
-+
-+    public function register_routes(): void {
-+        register_rest_route(
-+            'negarin/v1',
-+            '/sms-newsletter/subscribe',
++        $result = $this->send_curl(
++            self::API_BASE . $api_key,
 +            array(
-+                'methods'             => 'POST',
-+                'callback'            => array( $this, 'handle_subscribe' ),
-+                'permission_callback' => '__return_true',
++                'bodyId' => $body_id,
++                'to'     => $phone,
++                'args'   => array( $code ),
 +            )
 +        );
+ 
+-		$body_id = defined( 'NEGARIN_OTP_BODY_ID' ) ? NEGARIN_OTP_BODY_ID : '';
+-//        error_log('body_id: ' . $body_id);
+-		if ( empty( $body_id ) ) {
+-			error_log( 'Negarin: NEGARIN_OTP_BODY_ID is not defined in wp-config.php' ); // phpcs:ignore
+-			return false;
+-		}
++        if ( ! $result['success'] ) {
++            error_log( 'Negarin MelliPayamak OTP send failed: ' . $this->describe_failure( $result ) ); // phpcs:ignore
++        }
+ 
+-		$url = self::API_BASE . $api_key;
+-//        error_log('url: ' . $url);
++        return $result['success'];
++    }
+ 
+-        $data = array('bodyId' => $body_id, 'to' => $phone, 'args' => [$code]);
+-        $data_string = json_encode($data);
+-        $ch = curl_init($url);
+-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
++    /**
++     * Sends a fully custom SMS — no bodyId/pattern involved, $text is
++     * whatever the caller composed for that one recipient (an order
++     * confirmation, an installment reminder, etc.).
++     *
++     * @param string $phone Local phone number, e.g. 09121234567.
++     * @param string $text  The full message body to send as-is.
++     */
++    public function send_message( string $phone, string $text ): bool {
++        $api_key = $this->config->api_key();
++        $sender  = $this->config->sender();
+ 
+-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+-        curl_setopt($ch, CURLOPT_HTTPHEADER,
+-            array('Content-Type: application/json',
+-                'Content-Length: ' . strlen($data_string))
++        if ( '' === $api_key || '' === $sender ) {
++            return false; // MelliPayamakConfig has already logged which one is missing.
++        }
++
++        $result = $this->send_curl(
++            self::SIMPLE_API_BASE . $api_key,
++            array(
++                'from' => $sender,
++                'to'   => $phone,
++                'text' => $text,
++            )
+         );
+-        $curl = curl_exec($ch);
+-        $status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+-        curl_close($ch);
+-//        file_put_contents(__DIR__.'/otps.log', print_r($response, true), FILE_APPEND);
+-		if ( curl_error($ch) ) {
+-			error_log( 'Negarin MelliPayamak error: ' . curl_errno($ch) ); // phpcs:ignore
+-			return false;
+-		}
+-
+-		$response_body = $curl;
+-
+-		// MelliPayamak's documented response shape/error codes for this
+-		// endpoint were not available to verify at implementation time, so
+-		// only the HTTP status is used as the success signal — matching
+-		if ( $status_code < 200 || $status_code >= 300 ) {
+-			error_log( 'Negarin MelliPayamak HTTP ' . $status_code . ': ' . $response_body ); // phpcs:ignore
+-			return false;
+-		}
+-
+-		return true;
+-	}
++
++        if ( ! $result['success'] ) {
++            error_log( 'Negarin MelliPayamak message send failed: ' . $this->describe_failure( $result ) ); // phpcs:ignore
++        }
++
++        return $result['success'];
 +    }
 +
 +    /**
-+     * @return WP_REST_Response|WP_Error
++     * POSTs $payload as JSON to $url and reports what happened. Returns
++     * a small result array instead of a single bool/response-body value
++     * so a caller (or the error_log() lines above) can always tell a
++     * rejected request (HTTP status outside 2xx) apart from a transport
++     * failure (DNS, timeout, TLS) — both send_otp() and send_message()
++     * only read `success`, but that distinction is cheap to keep around
++     * for logging and costs nothing extra to compute.
++     *
++     * SSL peer verification is left OFF, matching MelliPayamak's own
++     * sample and this gateway's previous behavior — OTP delivery already
++     * depends on this working as-is on this host, so this refactor
++     * doesn't change it. Revisit once the server's CA bundle is
++     * confirmed fine (or switch to wp_remote_post(), which ships its own
++     * bundle and is what KavenegarGateway already uses).
++     *
++     * @return array{success: bool, status_code: ?int, body: ?string, error: ?string}
 +     */
-+    public function handle_subscribe( WP_REST_Request $request ) {
-+        // Honeypot: a hidden field a bot fills in, a human never does.
-+        // Pretend success so a bot never learns it was caught.
-+        if ( ! empty( $request->get_param( 'website' ) ) ) {
-+            return new WP_REST_Response( array( 'success' => true ), 200 );
-+        }
++    private function send_curl( string $url, array $payload ): array {
++        $data_string = wp_json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 +
-+        $phone = sanitize_text_field( (string) $request->get_param( 'phone' ) );
++        $ch = curl_init( $url );
++        curl_setopt( $ch, CURLOPT_POST, true );
++        curl_setopt( $ch, CURLOPT_POSTFIELDS, $data_string );
++        curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
++        curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, self::CONNECT_TIMEOUT );
++        curl_setopt( $ch, CURLOPT_TIMEOUT, self::TIMEOUT );
++        curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, false );
++        curl_setopt(
++            $ch,
++            CURLOPT_HTTPHEADER,
++            array(
++                'Content-Type: application/json',
++                'Content-Length: ' . strlen( $data_string ),
++            )
++        );
 +
-+        if ( '' === trim( $phone ) || ! validate_phone( $phone ) ) {
-+            return new WP_Error(
-+                'negarin_sms_newsletter_invalid',
-+                __( 'لطفاً موارد مشخص‌شده را اصلاح کنید.', 'negarin' ),
-+                array(
-+                    'status' => 400,
-+                    'errors' => array( 'phone' => __( 'شماره موبایل را به صورت صحیح وارد کنید.', 'negarin' ) ),
-+                )
++        $body        = curl_exec( $ch );
++        $status_code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
++        $curl_error  = curl_error( $ch ); // Read before curl_close() — a closed handle reports no error at all.
++        curl_close( $ch );
++
++        if ( false === $body || '' !== $curl_error ) {
++            return array(
++                'success'     => false,
++                'status_code' => null,
++                'body'        => null,
++                'error'       => '' !== $curl_error ? $curl_error : 'curl_exec returned false with no error message',
 +            );
 +        }
 +
-+        $normalized = normalize_phone( $phone );
-+
-+        global $wpdb;
-+        $table_name = self::table_name();
-+
-+        $existing = $wpdb->get_row(
-+            $wpdb->prepare( "SELECT id, status FROM {$table_name} WHERE phone = %s", $normalized ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-+        );
-+
-+        if ( $existing && 'active' === $existing->status ) {
-+            return new WP_REST_Response( array( 'success' => true, 'already' => true ), 200 );
-+        }
-+
-+        if ( $existing ) {
-+            // Previously removed (soft-delete) — reactivate the same row
-+            // instead of inserting, which would collide with UNIQUE(phone).
-+            $updated = $wpdb->update(
-+                $table_name,
-+                array(
-+                    'status'     => 'active',
-+                    'created_at' => current_time( 'mysql' ),
-+                ),
-+                array( 'id' => $existing->id ),
-+                array( '%s', '%s' ),
-+                array( '%d' )
-+            );
-+
-+            if ( false === $updated ) {
-+                return new WP_Error( 'negarin_sms_newsletter_failed', __( 'ثبت شماره با خطا مواجه شد.', 'negarin' ), array( 'status' => 500 ) );
-+            }
-+
-+            return new WP_REST_Response( array( 'success' => true, 'already' => false ), 200 );
-+        }
-+
-+        $inserted = $wpdb->insert(
-+            $table_name,
-+            array(
-+                'phone'      => $normalized,
-+                'status'     => 'active',
-+                'created_at' => current_time( 'mysql' ),
-+            ),
-+            array( '%s', '%s', '%s' )
-+        );
-+
-+        if ( false === $inserted ) {
-+            return new WP_Error( 'negarin_sms_newsletter_failed', __( 'ثبت شماره با خطا مواجه شد.', 'negarin' ), array( 'status' => 500 ) );
-+        }
-+
-+        return new WP_REST_Response( array( 'success' => true, 'already' => false ), 200 );
-+    }
-+
-+    /**
-+     * [negarin_sms_newsletter title="..." description="..." button="..."]
-+     */
-+    public function register_shortcode(): void {
-+        add_shortcode( 'negarin_sms_newsletter', array( $this, 'render_shortcode' ) );
-+    }
-+
-+    public function render_shortcode( $atts ): string {
-+        $atts = shortcode_atts(
-+            array(
-+                'title'       => __( 'عضویت در خبرنامه پیامکی', 'negarin' ),
-+                'description' => __( 'شماره موبایلت رو بزن تا به محض انتشار محصولات جدید بهت پیامک بدیم.', 'negarin' ),
-+                'button'      => __( 'عضویت', 'negarin' ),
-+            ),
-+            $atts,
-+            'negarin_sms_newsletter'
-+        );
-+
-+        $title       = $atts['title'];
-+        $description = $atts['description'];
-+        $button_text = $atts['button'];
-+
-+        ob_start();
-+        include NEGARIN_DIR . '/template-parts/components/sms-newsletter-form.php';
-+        return (string) ob_get_clean();
-+    }
-+
-+    /**
-+     * A plain list of numbers is otherwise invisible in wp-admin — this
-+     * page is read + soft-delete + CSV export only. Actually sending the
-+     * SMS blast stays a manual step done elsewhere, outside this page.
-+     */
-+    public function register_admin_page(): void {
-+        add_menu_page(
-+            __( 'خبرنامه پیامکی', 'negarin' ),
-+            __( 'خبرنامه پیامکی', 'negarin' ),
-+            'manage_options',
-+            self::ADMIN_PAGE_SLUG,
-+            array( $this, 'render_admin_page' ),
-+            'dashicons-email-alt',
-+            58
++        return array(
++            'success'     => $status_code >= 200 && $status_code < 300,
++            'status_code' => $status_code,
++            'body'        => $body,
++            'error'       => null,
 +        );
 +    }
 +
 +    /**
-+     * Runs on admin_init — before admin-header.php sends any HTML — so
-+     * both the CSV download (needs to set headers) and the post-action
-+     * redirect (needs no output sent yet) are possible. render_admin_page()
-+     * itself only ever displays.
++     * @param array{success: bool, status_code: ?int, body: ?string, error: ?string} $result
 +     */
-+    public function maybe_handle_admin_actions(): void {
-+        if ( ! isset( $_GET['page'] ) || self::ADMIN_PAGE_SLUG !== $_GET['page'] ) {
-+            return;
-+        }
-+        if ( ! current_user_can( 'manage_options' ) ) {
-+            return;
++    private function describe_failure( array $result ): string {
++        if ( null !== $result['error'] ) {
++            return 'cURL error: ' . $result['error'];
 +        }
 +
-+        if ( isset( $_GET['export'] ) && 'csv' === $_GET['export'] ) {
-+            check_admin_referer( self::ADMIN_NONCE );
-+            $this->export_csv(); // Exits.
-+        }
-+
-+        if ( isset( $_GET['remove'] ) ) {
-+            check_admin_referer( self::ADMIN_NONCE );
-+            $this->soft_delete( (int) $_GET['remove'] );
-+            wp_safe_redirect( remove_query_arg( array( 'remove', '_wpnonce' ) ) );
-+            exit;
-+        }
++        return 'HTTP ' . $result['status_code'] . ': ' . $result['body'];
 +    }
-+
-+    private function soft_delete( int $id ): void {
-+        global $wpdb;
-+        $wpdb->update(
-+            self::table_name(),
-+            array( 'status' => 'removed' ),
-+            array( 'id' => $id ),
-+            array( '%s' ),
-+            array( '%d' )
-+        );
-+    }
-+
-+    private function export_csv(): void {
-+        global $wpdb;
-+        $table_name = self::table_name();
-+
-+        $rows = $wpdb->get_results(
-+            $wpdb->prepare( "SELECT phone, created_at FROM {$table_name} WHERE status = %s ORDER BY created_at DESC", 'active' ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-+        );
-+
-+        nocache_headers();
-+        header( 'Content-Type: text/csv; charset=utf-8' );
-+        header( 'Content-Disposition: attachment; filename=negarin-sms-subscribers-' . gmdate( 'Y-m-d' ) . '.csv' );
-+
-+        $out = fopen( 'php://output', 'w' );
-+        fwrite( $out, "\xEF\xBB\xBF" ); // UTF-8 BOM so Excel opens it without mangling Persian dates/labels.
-+        fputcsv( $out, array( 'phone', 'subscribed_at' ) );
-+        foreach ( $rows as $row ) {
-+            fputcsv( $out, array( $row->phone, $row->created_at ) );
-+        }
-+        fclose( $out );
-+        exit;
-+    }
-+
-+    public function render_admin_page(): void {
-+        if ( ! current_user_can( 'manage_options' ) ) {
-+            return;
-+        }
-+
-+        global $wpdb;
-+        $table_name = self::table_name();
-+
-+        $subscribers = $wpdb->get_results(
-+            $wpdb->prepare( "SELECT id, phone, created_at FROM {$table_name} WHERE status = %s ORDER BY created_at DESC", 'active' ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-+        );
-+        $count = count( $subscribers );
-+
-+        $export_url = wp_nonce_url( admin_url( 'admin.php?page=' . self::ADMIN_PAGE_SLUG . '&export=csv' ), self::ADMIN_NONCE );
-+        ?>
-+        <div class="wrap">
-+            <h1 class="wp-heading-inline"><?php esc_html_e( 'خبرنامه پیامکی', 'negarin' ); ?></h1>
-+            <a href="<?php echo esc_url( $export_url ); ?>" class="page-title-action"><?php esc_html_e( 'خروجی CSV', 'negarin' ); ?></a>
-+            <hr class="wp-header-end">
-+            <p>
-+                <?php
-+                printf(
-+                    /* translators: %d: active subscriber count */
-+                    esc_html( _n( '%d شماره فعال.', '%d شماره فعال.', $count, 'negarin' ) ),
-+                    (int) $count
-+                );
-+                ?>
-+            </p>
-+            <table class="widefat striped">
-+                <thead>
-+                    <tr>
-+                        <th><?php esc_html_e( 'شماره موبایل', 'negarin' ); ?></th>
-+                        <th><?php esc_html_e( 'تاریخ ثبت‌نام', 'negarin' ); ?></th>
-+                        <th></th>
-+                    </tr>
-+                </thead>
-+                <tbody>
-+                    <?php if ( ! $subscribers ) : ?>
-+                        <tr><td colspan="3"><?php esc_html_e( 'هنوز کسی عضو نشده است.', 'negarin' ); ?></td></tr>
-+                    <?php endif; ?>
-+                    <?php foreach ( $subscribers as $row ) : ?>
-+                        <?php $remove_url = wp_nonce_url( admin_url( 'admin.php?page=' . self::ADMIN_PAGE_SLUG . '&remove=' . (int) $row->id ), self::ADMIN_NONCE ); ?>
-+                        <tr>
-+                            <td dir="ltr" style="text-align:right"><?php echo esc_html( $row->phone ); ?></td>
-+                            <td><?php echo esc_html( mysql2date( 'Y/m/d H:i', $row->created_at ) ); ?></td>
-+                            <td>
-+                                <a
-+                                    href="<?php echo esc_url( $remove_url ); ?>"
-+                                    onclick="return confirm('<?php echo esc_js( __( 'این شماره از لیست حذف شود؟', 'negarin' ) ); ?>');"
-+                                    class="submitdelete"
-+                                ><?php esc_html_e( 'حذف', 'negarin' ); ?></a>
-+                            </td>
-+                        </tr>
-+                    <?php endforeach; ?>
-+                </tbody>
-+            </table>
-+        </div>
-+        <?php
-+    }
-+}
-diff --git a/inc/services/SmsNewsletterBlock.php b/inc/services/SmsNewsletterBlock.php
-new file mode 100644
-index 0000000..f68727e
---- /dev/null
-+++ b/inc/services/SmsNewsletterBlock.php
-@@ -0,0 +1,39 @@
-+<?php
-+/**
-+ * Registers the negarin/sms-newsletter Gutenberg block — an editor-only
-+ * wrapper around the same form used by the [negarin_sms_newsletter]
-+ * shortcode (inc/services/SmsNewsletter.php,
-+ * template-parts/components/sms-newsletter-form.php). Same pattern as
-+ * IconButtonBlock.php: a dynamic block, PHP renders the real markup, the
-+ * editor JS only edits attributes and previews via ServerSideRender.
-+ *
-+ * The "negarin" block category and the block-editor Tailwind CSS are
-+ * already registered by IconButtonBlock — nothing to duplicate here.
-+ *
-+ * @package Negarin
-+ */
-+
-+namespace Negarin\Services;
-+
-+if ( ! defined( 'ABSPATH' ) ) {
-+    exit;
-+}
-+
-+class SmsNewsletterBlock {
-+
-+    public function __construct() {
-+        add_action( 'init', array( $this, 'register_block' ) );
-+    }
-+
-+    public function register_block(): void {
-+        wp_register_script(
-+            'negarin-sms-newsletter-editor',
-+            NEGARIN_URI . '/inc/blocks/sms-newsletter/index.js',
-+            array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n', 'wp-server-side-render' ),
-+            NEGARIN_VERSION,
-+            true
-+        );
-+
-+        register_block_type( NEGARIN_DIR . '/inc/blocks/sms-newsletter' );
-+    }
-+}
-diff --git a/template-parts/components/sms-newsletter-form.php b/template-parts/components/sms-newsletter-form.php
-new file mode 100644
-index 0000000..5dad6c8
---- /dev/null
-+++ b/template-parts/components/sms-newsletter-form.php
-@@ -0,0 +1,62 @@
-+<?php
-+/**
-+ * SMS newsletter subscribe form — shared by the [negarin_sms_newsletter]
-+ * shortcode and the negarin/sms-newsletter block, so both always render
-+ * the exact same markup/behavior (inc/services/SmsNewsletter.php,
-+ * inc/services/SmsNewsletterBlock.php). Talks to
-+ * inc/services/SmsNewsletter.php over REST via
-+ * assets/js/sms-newsletter.js.
-+ *
-+ * Expects $title, $description, $button_text in scope.
-+ *
-+ * @package Negarin
-+ */
-+
-+if ( ! defined( 'ABSPATH' ) ) {
-+    exit;
-+}
-+?>
-+<div x-data="negarinSmsNewsletter()" class="negarin-sms-newsletter max-w-lg">
-+
-+    <template x-if="!sent">
-+        <form @submit.prevent="submit()" class="space-y-4 text-right">
-+
-+            <input type="text" x-model="website" class="hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
-+
-+            <?php if ( ! empty( $title ) ) : ?>
-+                <h3 class="text-lg font-medium"><?php echo esc_html( $title ); ?></h3>
-+            <?php endif; ?>
-+
-+            <?php if ( ! empty( $description ) ) : ?>
-+                <p class="text-sm opacity-70"><?php echo esc_html( $description ); ?></p>
-+            <?php endif; ?>
-+
-+            <div class="flex flex-col sm:flex-row gap-3">
-+                <div class="flex-1">
-+                    <input
-+                        type="tel"
-+                        x-model="phone"
-+                        dir="ltr"
-+                        placeholder="09xxxxxxxxx"
-+                        class="negarin-field-input"
-+                        :class="{ 'border-negarin-red': fieldErrors.phone }"
-+                    >
-+                    <p class="text-negarin-red text-sm mt-2" x-show="fieldErrors.phone" x-text="fieldErrors.phone"></p>
-+                </div>
-+                <button type="submit" class="btn btn--solid shrink-0" :disabled="submitting">
-+                    <span x-show="!submitting"><?php echo esc_html( $button_text ); ?></span>
-+                    <span x-show="submitting"><?php esc_html_e( 'در حال ثبت...', 'negarin' ); ?></span>
-+                </button>
-+            </div>
-+        </form>
-+    </template>
-+
-+    <template x-if="sent">
-+        <div class="text-center py-6">
-+            <p
-+                class="text-base"
-+                x-text="alreadySubscribed ? '<?php echo esc_js( __( 'شما قبلاً عضو این خبرنامه هستید.', 'negarin' ) ); ?>' : '<?php echo esc_js( __( 'ثبت شد! به محض انتشار محصولات جدید بهت خبر می‌دیم.', 'negarin' ) ); ?>'"
-+            ></p>
-+        </div>
-+    </template>
-+</div>
+ }

@@ -14,7 +14,7 @@ $col_class = '3' === $columns ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-2';
 $size      = '3' === $columns ? 'negarin-grid-3' : 'negarin-grid-2';
 ?>
 <section class="negarin-page-section negarin-image-grid">
-    <div class="container max-w-7xl mx-auto px-4 grid gap-10 items-center <?php echo esc_attr( $col_class ); ?>">
+    <div class="container max-w-7xl mx-auto px-4 grid gap-10 items-start <?php echo esc_attr( $col_class ); ?>">
         <?php if ( have_rows( 'items' ) ) : ?>
         <?php while ( have_rows( 'items' ) ) : the_row(); ?>
         <?php
