@@ -148,19 +148,23 @@ body {
 .quantity{
   @apply h-full;
 }
-input.negarin-qty-input[type=number] {
+input[type="number"].negarin-qty-input {
   @apply text-center border-0 text-sm w-8;
 }
 
-/* Native WooCommerce cart controls we keep functional but drive via our
-   own UI (quantity stepper triggers this button programmatically). */
-input.negarin-qty-input[type=number]::-webkit-inner-spin-button,
-input.negarin-qty-input[type=number]::-webkit-outer-spin-button {
+/* Chrome, Edge, Safari */
+input[type="number"].negarin-qty-input::-webkit-inner-spin-button,
+input[type="number"].negarin-qty-input::-webkit-outer-spin-button {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
   margin: 0;
+}
 
+/* Firefox */
+input[type="number"].negarin-qty-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .woocommerce-cart-form [name='update_cart'] {
