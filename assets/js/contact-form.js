@@ -22,8 +22,9 @@ export function negarinContactForm() {
 
         async loadCaptcha() {
             this.loadingCaptcha = true;
+            let time = new Date().getTime();
             try {
-                const res = await fetch(`${negarinData.restUrl}captcha`);
+                const res = await fetch(`${negarinData.restUrl}captcha?time=${time}`);
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.message || 'خطا در بارگذاری کد امنیتی.');
 

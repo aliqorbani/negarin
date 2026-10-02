@@ -52,6 +52,7 @@ class Captcha {
      * @return WP_REST_Response|WP_Error
      */
     public function handle_issue() {
+
         if ( ! extension_loaded( 'gd' ) ) {
             return new WP_Error( 'negarin_captcha_unavailable', __( 'قابلیت کد امنیتی روی این سرور در دسترس نیست.', 'negarin' ), array( 'status' => 500 ) );
         }
@@ -61,13 +62,22 @@ class Captcha {
 
         set_transient( 'negarin_captcha_' . $token, $code, self::TTL );
 
-        return new WP_REST_Response(
+        $response = new WP_REST_Response(
             array(
                 'token' => $token,
                 'image' => 'data:image/png;base64,' . base64_encode( self::render_image( $code ) ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- raw image bytes, not obfuscated code.
             ),
             200
         );
+
+        $response->header(
+            'Cache-Control',
+            'no-store, no-cache, must-revalidate, max-age=0, private'
+        );
+        $response->header( 'Pragma', 'no-cache' );
+        $response->header( 'Expires', '0' );
+
+        return $response;
     }
 
     /**
