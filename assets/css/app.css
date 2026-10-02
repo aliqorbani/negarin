@@ -12,8 +12,6 @@
   /* for the other supporting browsers */
   font-display: fallback;
 }
-
-
 @font-face {
   font-family: Modam;
   src: url('../fonts/ModamWeb-Regular.woff2') format('woff2'),
@@ -401,4 +399,129 @@ select.negarin-field-input {
 }
 .negarin-connectivity-banner__retry {
   @apply rounded-sm border border-white/40 px-3 py-1 text-xs hover:bg-white hover:text-negarin-ink transition-colors;
+}
+
+/*size guide modal*/
+
+.size-guide {
+  @apply w-full;
+}
+
+.sg-title {
+  @apply font-bold text-lg m-0 !mb-2;
+  /*font-size: 18px;*/
+  /*font-weight: 700;*/
+  /*margin: 0 0 8px;*/
+}
+
+.sg-description {
+  @apply text-gray-600 m-0 mb-5;
+  /*color: var(--sg-muted);*/
+  /*font-size: 12px;*/
+  /*margin: 0 0 20px;*/
+  line-height: 1.4;
+}
+
+/* Size tabs */
+.sg-tabs {
+  @apply flex flex-wrap gap-2 overflow-x-auto pb-3 pt-0.5 p-[1px];
+  /*display: flex;*/
+  /*gap: 8px;*/
+  /*overflow-x: auto;*/
+  /*padding: 2px 1px 12px;*/
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.sg-tab{
+  @apply size-8 flex items-center justify-center border text-sm relative overflow-hidden border-negarin-line text-negarin-ink hover:border-black hover:text-black;
+}
+
+.sg-tab[aria-selected="true"] {
+  @apply bg-negarin-ink text-white border-black;
+  /*background: #000;*/
+  /*color: #fff;*/
+  /*border-color: #000;*/
+}
+
+.sg-tab:focus-visible {
+  @apply outline-2 outline-negarin-red/20 outline-offset-2;
+  /*outline: 3px solid #3B82F67F;*/
+  /*outline-offset: 2px;*/
+}
+
+/* Measurements */
+.sg-measurements {
+  @apply grid gap-2.5 mt-2.5;
+  /*display: grid;*/
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /*gap: 10px;*/
+  /*margin-top: 10px;*/
+}
+
+.sg-card {
+  @apply bg-gray-100 border-gray-200 rounded-lg p-2 min-w-0;
+  /*background: #f7f9fa;*/
+  /*border: 1px solid #edf0f2;*/
+  /*border-radius: 8px;*/
+  /*padding: 10px;*/
+  /*min-width: 0;*/
+}
+
+.sg-card-label {
+  @apply inline-block text-gray-600 text-sm mb-1 ml-1;
+  /*display: inline-block;*/
+  /*color: #77818d;*/
+  /*font-size: 14px;*/
+  /*line-height: 1.8;*/
+  /*margin-bottom: 5px;*/
+  /*margin-left: 5px;*/
+}
+
+.sg-card-value {
+  @apply inline-block text-lg font-bold leading-6 text-right;
+  /*display: inline-block;*/
+  /*font-size: 18px;*/
+  /*font-weight: 700;*/
+  /*line-height: 1.5;*/
+  direction: ltr;
+  /*text-align: right;*/
+}
+
+.sg-note {
+  @apply text-sm leading-5 text-black/80 mt-4;
+  /*font-size: 11px;*/
+  /*line-height: 1.8;*/
+  /*color: #00000080;*/
+  /*margin: 16px 0 0;*/
+}
+
+@media (min-width: 640px) {
+  .sg-measurements {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .sg-measurements {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 380px) {
+  .sg-measurements {
+    @apply gap-2;
+    /*gap: 7px;*/
+  }
+
+  .sg-card {
+    @apply p-2.5;
+    /*padding: 10px;*/
+  }
+
+  .sg-card-value {
+    @apply text-sm;
+    /*font-size: 14px;*/
+  }
+
 }

@@ -49,6 +49,7 @@ $component_state = wp_json_encode(
             <button @click="sizeSelectOpen = false" aria-label="<?php esc_attr_e( 'بستن', 'negarin' ); ?>" class="text-2xl leading-none order-2">&times;</button>
         </div>
 
+        <!-- انتخاب سایز -->
         <div class="flex flex-wrap gap-2 mb-3">
             <template x-for="option in options" :key="option.slug">
                 <button
@@ -66,6 +67,28 @@ $component_state = wp_json_encode(
             </template>
         </div>
 
+        <!-- اندازه‌های سایز انتخاب‌شده -->
+        <div
+                x-show="selectedMeasurements.length > 0"
+                x-cloak
+                x-transition.opacity.duration.200ms
+                class="flex flex-wrap gap-x-3 gap-y-1 mb-5 text-[10px] md:text-xs text-gray-500"
+        >
+            <template x-for="(item, index) in selectedMeasurements" :key="index">
+            <span class="whitespace-nowrap">
+                <span x-text="item.label"></span>
+                <span class="mx-0.5">:</span>
+                <span class="font-medium text-gray-700" x-text="item.value"></span>
+                <span>سانتی‌متر</span>
+            </span>
+            </template>
+        </div>
+
+        <div class="flex flex-wrap gap-x-3 gap-y-1 mb-5 text-[10px] md:text-xs text-gray-500 text-sm text-gray-500" x-show="selectedMeasurements.length == 0" x-cloak>
+            <span class="whitespace-nowrap">لطفا سایز مورد نظر خود را انتخاب کنید</span>
+        </div>
+
+        <!-- راهنمای سایز -->
         <div class="flex justify-end mb-6">
             <button type="button" class="text-sm underline" @click="sizeChartOpen = true">
                 <?php esc_html_e( 'راهنمای سایز', 'negarin' ); ?>
@@ -74,6 +97,7 @@ $component_state = wp_json_encode(
 
         <p class="text-negarin-red text-sm mb-4" x-show="error" x-text="error"></p>
 
+        <!-- ثبت سفارش -->
         <div class="flex gap-3">
             <button type="button" class="btn btn--solid flex-1" :disabled="!selected || loading" @click="addToCart()">
                 <span x-show="!loading"><?php esc_html_e( 'ثبت و ادامه سفارش', 'negarin' ); ?></span>

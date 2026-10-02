@@ -35,7 +35,54 @@ $content = negarin_option( 'size_guide_content' );
 
 		<?php if ( $content ) : ?>
 			<div class="prose prose-sm max-w-none negarin-size-chart">
-				<?php echo wp_kses_post( $content ); ?>
+
+
+
+                <div class="size-guide" dir="rtl" x-data="negarinSizeGuide()">
+                    <h3 class="sg-title">راهنمای سایز</h3>
+
+                    <p class="sg-description">
+                        سایز موردنظر خود را انتخاب کنید تا اندازه‌های آن را مشاهده کنید.
+                    </p>
+
+                    <div class="sg-tabs" role="tablist" aria-label="انتخاب سایز">
+                        <template x-for="(size, index) in sizes" :key="size">
+                            <button
+                                    class="sg-tab size-8 flex items-center justify-center border text-sm relative overflow-hidden border-negarin-line text-negarin-ink"
+                                    :class="{
+                    'bg-negarin-ink text-white border-negarin-ink': selectedSize === size
+                }"
+                                    type="button"
+                                    role="tab"
+                                    :aria-selected="String(selectedSize === size)"
+                                    :tabindex="selectedSize === size ? 0 : -1"
+                                    :data-size="size"
+                                    @click="selectSize(size)"
+                                    @keydown="moveSize($event, index)"
+                                    x-text="size.toLocaleString('fa-IR')"
+                            ></button>
+                        </template>
+                    </div>
+
+                    <div
+                            class="sg-measurements"
+                            role="tabpanel"
+                            aria-live="polite"
+                    >
+                        <template x-for="(item, index) in selectedMeasurements" :key="index">
+                            <div class="sg-card">
+                                <span class="sg-card-label" x-text="item.name"></span>
+                                <strong class="sg-card-value" x-text="item.value"></strong>
+                            </div>
+                        </template>
+                    </div>
+
+                    <p class="sg-note">
+                        تمام اندازه‌ها بر حسب سانتی‌متر هستند.
+                    </p>
+                </div>
+
+				<?php //echo wp_kses_post( $content ); ?>
 			</div>
 		<?php else : ?>
 			<p class="text-sm opacity-70"><?php esc_html_e( 'جدول سایز به‌زودی اضافه می‌شود.', 'negarin' ); ?></p>
