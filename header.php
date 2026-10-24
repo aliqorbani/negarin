@@ -28,9 +28,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 </head>
 <body <?php body_class(); ?>>
 <?php wp_body_open(); ?>
-
 <a class="skip-link screen-reader-text" href="#main-content"><?php esc_html_e( 'رفتن به محتوای اصلی', 'negarin' ); ?></a>
-
+<h1 class="screen-reader-text sr-only"><?php the_title();?></h1>
 <?php
 $body_scripts = negarin_option( 'body_scripts' );
 if ( $body_scripts ) {
