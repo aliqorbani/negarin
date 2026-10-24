@@ -83,6 +83,7 @@ $negarin_hooks = [
     'ai-seo-box.php',
     'bale-notifier.php',
     'sms-notifier.php',
+    'sms-admin-notifier.php',
 ];
 $negarin_hooks = array_unique($negarin_hooks);
 foreach ($negarin_hooks as $hook_file) {
